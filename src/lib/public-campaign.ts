@@ -71,7 +71,7 @@ export async function getPublicCampaignData(code: string): Promise<PublicCampaig
     return null;
   }
 
-  const [transactionSums, transactions] = await Promise.all([
+  const [transactionSums, transactions, openingAllocation] = await Promise.all([
     prisma.bankTransaction.aggregate({
       where: {
         campaignId: campaign.id,
@@ -98,10 +98,15 @@ export async function getPublicCampaignData(code: string): Promise<PublicCampaig
       orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }, { statementRow: "desc" }],
       take: 1000,
     }),
+    prisma.openingBalanceAllocation.findUnique({
+      where: { campaignId: campaign.id },
+      select: { amount: true },
+    }),
   ]);
 
   const income = decimalToNumber(transactionSums._sum.creditAmount);
   const expenses = decimalToNumber(transactionSums._sum.debitAmount);
+  const openingBalance = decimalToNumber(openingAllocation?.amount);
 
   return {
     code: campaign.code,
@@ -110,7 +115,7 @@ export async function getPublicCampaignData(code: string): Promise<PublicCampaig
     status: campaign.status,
     income,
     expenses,
-    balance: income - expenses,
+    balance: openingBalance + income - expenses,
     transactionCount: transactionSums._count,
     transactions: transactions.map((transaction) => ({
       id: transaction.id,

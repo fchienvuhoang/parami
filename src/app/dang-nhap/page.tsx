@@ -17,10 +17,10 @@ export default async function LoginPage({ searchParams }: Props) {
   const { next } = await searchParams;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f7f7f4] px-4 py-8 text-zinc-950">
-      <section className="w-full max-w-md rounded-md border border-zinc-200 bg-white p-5 shadow-sm">
+    <main className="flex min-h-screen items-center justify-center bg-[#f4f6ff] px-4 py-8 text-slate-950">
+      <section className="w-full max-w-md rounded-xl border border-indigo-100 bg-white p-6 shadow-xl shadow-indigo-950/5">
         <div className="flex items-start gap-3">
-          <span className="rounded-md bg-zinc-100 p-2 text-zinc-700">
+          <span className="rounded-lg bg-indigo-100 p-2 text-indigo-700">
             <LockKeyhole className="h-5 w-5" />
           </span>
           <div>

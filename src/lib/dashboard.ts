@@ -43,6 +43,13 @@ export type DashboardData = {
     duplicateRows: number;
     unmatchedRows: number;
   } | null;
+  openingBalance: {
+    cutoffDate: string;
+    bankBalance: number;
+    unallocatedBalance: number;
+    note: string | null;
+    createdAt: string;
+  } | null;
 };
 
 export type CampaignSummary = {
@@ -55,6 +62,7 @@ export type CampaignSummary = {
   debit: number;
   expenses: number;
   balance: number;
+  openingBalance: number;
   transactionCount: number;
   keywords: {
     id: string;
@@ -99,6 +107,7 @@ export async function getDashboardState(): Promise<DashboardState> {
       debitTransactions,
       bankAccount,
       latestImport,
+      openingBalance,
     ] = await Promise.all([
       prisma.campaign.findMany({
         include: {
@@ -196,6 +205,10 @@ export async function getDashboardState(): Promise<DashboardState> {
       prisma.importBatch.findFirst({
         orderBy: { importedAt: "desc" },
       }),
+      prisma.openingBalance.findUnique({
+        where: { id: "system-opening-balance" },
+        include: { allocations: true },
+      }),
     ]);
 
     const txByCampaign = new Map(
@@ -214,6 +227,9 @@ export async function getDashboardState(): Promise<DashboardState> {
       const income = tx?.income ?? 0;
       const debit = tx?.debit ?? 0;
       const expensesAmount = debit;
+      const initialAmount = decimalToNumber(
+        openingBalance?.allocations.find((allocation) => allocation.campaignId === campaign.id)?.amount,
+      );
 
       return {
         id: campaign.id,
@@ -224,7 +240,8 @@ export async function getDashboardState(): Promise<DashboardState> {
         income,
         debit,
         expenses: expensesAmount,
-        balance: income - expensesAmount,
+        openingBalance: initialAmount,
+        balance: initialAmount + income - expensesAmount,
         transactionCount: campaign._count.transactions,
         keywords: campaign.keywords.map((keyword) => ({
           id: keyword.id,
@@ -303,6 +320,15 @@ export async function getDashboardState(): Promise<DashboardState> {
               insertedRows: latestImport.insertedRows,
               duplicateRows: latestImport.duplicateRows,
               unmatchedRows: latestImport.unmatchedRows,
+            }
+          : null,
+        openingBalance: openingBalance
+          ? {
+              cutoffDate: openingBalance.cutoffDate.toISOString(),
+              bankBalance: decimalToNumber(openingBalance.bankBalance),
+              unallocatedBalance: decimalToNumber(openingBalance.unallocatedBalance),
+              note: openingBalance.note,
+              createdAt: openingBalance.createdAt.toISOString(),
             }
           : null,
       },

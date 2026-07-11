@@ -27,6 +27,19 @@ export async function importBidvStatement(statementText: string) {
   const prisma = getPrisma();
   const parsed = parseBidvStatement(statementText);
   const rules = await loadKeywordRules(prisma);
+  const openingBalance = await prisma.openingBalance.findUnique({
+    where: { id: "system-opening-balance" },
+    select: { cutoffDate: true },
+  });
+
+  if (openingBalance) {
+    const olderRow = parsed.rows.find((row) => row.transactionDate < openingBalance.cutoffDate);
+    if (olderRow) {
+      throw new Error(
+        `Sao kê có giao dịch trước ngày bắt đầu quản lý (${openingBalance.cutoffDate.toLocaleDateString("vi-VN")}). Hãy chỉ import từ ngày đã chốt trở đi.`,
+      );
+    }
+  }
 
   const uniqueRows = new Map<string, (typeof parsed.rows)[number]>();
   for (const row of parsed.rows) {

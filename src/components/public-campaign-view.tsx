@@ -1,6 +1,6 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { HeartHandshake, Search, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { PublicCampaignData, PublicCampaignTransaction } from "@/lib/public-campaign";
 import { normalizeTransferText } from "@/lib/text";
@@ -12,7 +12,7 @@ const statusLabels = {
 };
 
 const statusClassNames = {
-  ACTIVE: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  ACTIVE: "border-rose-200 bg-rose-50 text-rose-700",
   PAUSED: "border-amber-200 bg-amber-50 text-amber-700",
   COMPLETED: "border-zinc-200 bg-zinc-50 text-zinc-600",
 };
@@ -32,29 +32,52 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
   }, [data.transactions, normalizedQuery]);
 
   return (
-    <div className="min-h-screen bg-[#f7f7f4] text-zinc-950">
-      <header className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto max-w-5xl px-4 py-5 sm:px-6">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-md bg-zinc-950 px-2 py-1 font-mono text-xs font-medium text-white">
-              {data.code}
-            </span>
-            <span className={`rounded-md border px-2 py-1 text-xs font-medium ${statusClassNames[data.status]}`}>
-              {statusLabels[data.status]}
-            </span>
-          </div>
-          <h1 className="mt-3 text-2xl font-semibold tracking-normal text-zinc-950 sm:text-3xl">
-            {data.name}
-          </h1>
-          {data.description ? (
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-600">{data.description}</p>
-          ) : null}
+    <div className="min-h-screen bg-[#fff8f3] text-zinc-950">
+      <header className="relative overflow-hidden border-b border-rose-100 bg-[#fff1ea]">
+        <div className="pointer-events-none absolute -right-24 -top-32 h-80 w-80 rounded-full bg-rose-200/40 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 left-1/3 h-64 w-64 rounded-full bg-amber-200/40 blur-3xl" />
 
-          <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <PublicStat label="Hùn phước" value={money(data.income)} tone="emerald" />
-            <PublicStat label="Đã cúng dường" value={money(data.expenses)} tone="amber" />
-            <PublicStat label="Tịnh tài còn lại" value={money(data.balance)} />
-            <PublicStat label="Lượt hùn phước" value={data.transactionCount.toLocaleString("vi-VN")} />
+        <div className="relative mx-auto grid max-w-5xl gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center lg:gap-12 lg:py-14">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-2 rounded-full bg-rose-950 px-3 py-1.5 text-xs font-medium text-white shadow-sm">
+                <Sparkles className="h-3.5 w-3.5 text-rose-200" />
+                Thiện pháp <span className="font-mono text-rose-100">{data.code}</span>
+              </span>
+              <span className={`rounded-full border bg-white/70 px-3 py-1.5 text-xs font-medium backdrop-blur ${statusClassNames[data.status]}`}>
+                {statusLabels[data.status]}
+              </span>
+            </div>
+
+            <div className="mt-7 flex items-start gap-4">
+              <span className="hidden rounded-2xl bg-white/70 p-3 text-rose-700 shadow-sm ring-1 ring-rose-100 backdrop-blur sm:block">
+                <HeartHandshake className="h-7 w-7" />
+              </span>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-rose-700">Cùng gieo duyên lành</p>
+                <h1 className="mt-2 max-w-2xl text-3xl font-semibold leading-tight tracking-[-0.03em] text-rose-950 sm:text-4xl">
+                  {data.name}
+                </h1>
+                {data.description ? (
+                  <p className="mt-4 max-w-2xl text-sm leading-7 text-stone-600 sm:text-base">{data.description}</p>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-white/80 bg-white/80 shadow-xl shadow-rose-950/5 backdrop-blur">
+            <div className="border-b border-rose-100 bg-rose-950 px-5 py-5 text-white">
+              <p className="text-xs font-medium uppercase tracking-wider text-rose-200">Tịnh tài hiện còn</p>
+              <p className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{money(data.balance)}</p>
+            </div>
+            <div className="grid grid-cols-2 divide-x divide-rose-100">
+              <HeroStat label="Đã hùn phước" value={money(data.income)} tone="rose" />
+              <HeroStat label="Đã cúng dường" value={money(data.expenses)} tone="amber" />
+            </div>
+            <div className="flex items-center justify-between border-t border-rose-100 px-5 py-3 text-xs text-stone-500">
+              <span>Số lượt hùn phước</span>
+              <span className="font-semibold text-rose-950">{data.transactionCount.toLocaleString("vi-VN")}</span>
+            </div>
           </div>
         </div>
       </header>
@@ -74,7 +97,7 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Tìm theo tên hoặc nội dung"
-                className="w-full rounded-md border border-zinc-300 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                className="w-full rounded-md border border-zinc-300 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-100"
               />
             </div>
           </div>
@@ -166,13 +189,13 @@ function EmptyState() {
   return <div className="px-3 py-10 text-center text-sm text-zinc-500">Không có giao dịch phù hợp.</div>;
 }
 
-function PublicStat({ label, value, tone = "zinc" }: { label: string; value: string; tone?: "zinc" | "emerald" | "amber" }) {
-  const color = tone === "emerald" ? "text-emerald-700" : tone === "amber" ? "text-amber-700" : "text-zinc-950";
+function HeroStat({ label, value, tone }: { label: string; value: string; tone: "rose" | "amber" }) {
+  const color = tone === "rose" ? "text-rose-700" : "text-amber-700";
 
   return (
-    <div className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2">
-      <div className="text-xs text-zinc-500">{label}</div>
-      <div className={`mt-1 text-sm font-semibold ${color}`}>{value}</div>
+    <div className="px-5 py-4">
+      <div className="text-xs text-stone-500">{label}</div>
+      <div className={`mt-1 text-sm font-semibold sm:text-base ${color}`}>{value}</div>
     </div>
   );
 }
@@ -182,8 +205,8 @@ function transactionMeta(transaction: PublicCampaignTransaction) {
     return {
       label: "Hùn phước",
       amount: transaction.creditAmount,
-      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
-      amountClassName: "text-emerald-700",
+      className: "border-rose-200 bg-rose-50 text-rose-700",
+      amountClassName: "text-rose-700",
     };
   }
 

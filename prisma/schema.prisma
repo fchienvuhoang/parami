@@ -61,21 +61,43 @@ model ImportBatch {
 }
 
 model Campaign {
-  id           String            @id @default(cuid())
-  code         String            @unique
-  name         String
-  description  String?
-  status       CampaignStatus    @default(ACTIVE)
-  targetAmount Decimal?          @db.Decimal(18, 2)
-  startDate    DateTime?
-  endDate      DateTime?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  keywords     CampaignKeyword[]
-  transactions BankTransaction[]
-  expenses     Expense[]
+  id                       String                    @id @default(cuid())
+  code                     String                    @unique
+  name                     String
+  description              String?
+  status                   CampaignStatus            @default(ACTIVE)
+  targetAmount             Decimal?                  @db.Decimal(18, 2)
+  startDate                DateTime?
+  endDate                  DateTime?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  keywords                 CampaignKeyword[]
+  transactions             BankTransaction[]
+  expenses                 Expense[]
+  openingBalanceAllocation OpeningBalanceAllocation?
 
   @@index([status, createdAt])
+}
+
+model OpeningBalance {
+  id                 String                     @id @default("system-opening-balance")
+  cutoffDate         DateTime
+  bankBalance        Decimal                    @db.Decimal(18, 2)
+  unallocatedBalance Decimal                    @db.Decimal(18, 2)
+  note               String?                    @db.Text
+  createdAt          DateTime                   @default(now())
+  allocations        OpeningBalanceAllocation[]
+}
+
+model OpeningBalanceAllocation {
+  id               String         @id @default(cuid())
+  openingBalanceId String
+  openingBalance   OpeningBalance @relation(fields: [openingBalanceId], references: [id], onDelete: Restrict)
+  campaignId       String         @unique
+  campaign         Campaign       @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  amount           Decimal        @db.Decimal(18, 2)
+
+  @@index([openingBalanceId])
 }
 
 model CampaignKeyword {

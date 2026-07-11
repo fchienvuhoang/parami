@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Search,
   Settings,
+  ShieldCheck,
   Tags,
   Trash2,
   Upload,
@@ -59,7 +60,7 @@ const statusLabels = {
 };
 
 const statusClassNames = {
-  ACTIVE: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  ACTIVE: "border-indigo-200 bg-indigo-50 text-indigo-700",
   PAUSED: "border-amber-200 bg-amber-50 text-amber-700",
   COMPLETED: "border-zinc-200 bg-zinc-50 text-zinc-600",
 };
@@ -86,6 +87,8 @@ function Dashboard({ data }: { data: DashboardData }) {
   const [deletingCampaignId, setDeletingCampaignId] = useState<string | null>(null);
   const [pendingTransactionId, setPendingTransactionId] = useState<string | null>(null);
   const [campaignModal, setCampaignModal] = useState<CampaignModalState | null>(null);
+  const [showSystemSettings, setShowSystemSettings] = useState(false);
+  const [isSavingOpeningBalance, setIsSavingOpeningBalance] = useState(false);
 
   const filteredTransactions = useMemo(() => {
     const normalizedQuery = normalizeTransferText(query);
@@ -270,12 +273,48 @@ function Dashboard({ data }: { data: DashboardData }) {
     router.refresh();
   }
 
+  async function handleOpeningBalance(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setMessage(null);
+    setIsSavingOpeningBalance(true);
+
+    try {
+      const form = event.currentTarget;
+      const formData = new FormData(form);
+      const allocations = data.campaigns.map((campaign) => ({
+        campaignId: campaign.id,
+        amount: parseMoneyInput(formData.get(`campaign-${campaign.id}`)),
+      }));
+      await readJson(
+        await fetch("/api/settings/opening-balance", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cutoffDate: String(formData.get("cutoffDate") ?? ""),
+            bankBalance: parseMoneyInput(formData.get("bankBalance")),
+            note: String(formData.get("note") ?? ""),
+            confirmation: String(formData.get("confirmation") ?? ""),
+            allocations,
+          }),
+        }),
+      );
+      setMessage("Đã chốt số dư đầu kỳ. Mốc này đã được khóa.");
+      setShowSystemSettings(false);
+      router.refresh();
+    } catch (caught) {
+      setError(getErrorMessage(caught));
+    } finally {
+      setIsSavingOpeningBalance(false);
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-[#f7f7f4] text-zinc-950">
+    <div className="min-h-screen bg-[#f4f6ff] text-zinc-950">
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+            <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">
               BIDV statement classifier
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-normal text-zinc-950">
@@ -289,7 +328,7 @@ function Dashboard({ data }: { data: DashboardData }) {
               <HeaderStat
                 label="TK ngân hàng"
                 value={money(data.overview.bankBalance)}
-                tone="emerald"
+                tone="indigo"
               />
               <HeaderStat
                 label="Quỹ theo thiện pháp"
@@ -344,13 +383,13 @@ function Dashboard({ data }: { data: DashboardData }) {
               <button
                 type="button"
                 onClick={() => setCampaignModal({ mode: "create" })}
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-indigo-700 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-800"
               >
                 <Plus className="h-4 w-4" />
                 Thêm thiện pháp
               </button>
               {importResult ? (
-                <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+                <div className="rounded-md border border-indigo-200 bg-indigo-50 p-3 text-sm text-indigo-800">
                   <div className="flex items-center gap-2 font-medium">
                     <CheckCircle2 className="h-4 w-4" />
                     {importResult.sourceLabel}
@@ -430,7 +469,7 @@ function Dashboard({ data }: { data: DashboardData }) {
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="Tìm nội dung, mã giao dịch..."
-                    className="w-full rounded-md border border-zinc-300 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                    className="w-full rounded-md border border-zinc-300 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
                   />
                 </div>
               </div>
@@ -482,6 +521,24 @@ function Dashboard({ data }: { data: DashboardData }) {
             onDelete={handleCampaignDelete}
           />
         ) : null}
+        <div className="flex justify-center pt-4">
+          <button
+            type="button"
+            onClick={() => setShowSystemSettings(true)}
+            className="inline-flex items-center gap-2 text-xs text-slate-400 hover:text-indigo-700"
+          >
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Cài đặt hệ thống
+          </button>
+        </div>
+        {showSystemSettings ? (
+          <OpeningBalanceModal
+            data={data}
+            isSaving={isSavingOpeningBalance}
+            onClose={() => setShowSystemSettings(false)}
+            onSubmit={handleOpeningBalance}
+          />
+        ) : null}
       </main>
     </div>
   );
@@ -531,7 +588,7 @@ function TransactionTable({
                 <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-zinc-600">
                   {transaction.transactionCode}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2 text-right font-medium text-emerald-700">
+                <td className="whitespace-nowrap px-3 py-2 text-right font-medium text-indigo-700">
                   {transaction.creditAmount > 0 ? money(transaction.creditAmount) : "-"}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 text-right text-amber-700">
@@ -539,7 +596,7 @@ function TransactionTable({
                 </td>
                 <td className="px-3 py-2">
                   {transaction.campaign ? (
-                    <span className="inline-flex rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
+                    <span className="inline-flex rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700">
                       {transaction.campaign.code}
                     </span>
                   ) : (
@@ -553,7 +610,7 @@ function TransactionTable({
                     value={transaction.campaign?.id ?? ""}
                     disabled={pendingTransactionId === transaction.id}
                     onChange={(event) => onAssign(transaction.id, event.target.value || null)}
-                    className="w-44 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                    className="w-44 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
                   >
                     <option value="">Chưa phân loại</option>
                     {campaigns.map((campaign) => (
@@ -649,7 +706,7 @@ function CampaignTable({
                     ) : null}
                   </div>
                 </td>
-                <td className="whitespace-nowrap px-3 py-2 text-right font-medium text-emerald-700">
+                <td className="whitespace-nowrap px-3 py-2 text-right font-medium text-indigo-700">
                   {money(campaign.income)}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 text-right text-amber-700">
@@ -739,7 +796,7 @@ function DebitTransactionTable({
                 </td>
                 <td className="px-3 py-2 align-top">
                   {transaction.campaign ? (
-                    <span className="inline-flex rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
+                    <span className="inline-flex rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700">
                       {transaction.campaign.code}
                     </span>
                   ) : (
@@ -753,7 +810,7 @@ function DebitTransactionTable({
                     value={transaction.campaign?.id ?? ""}
                     disabled={pendingTransactionId === transaction.id}
                     onChange={(event) => onAssign(transaction.id, event.target.value || null)}
-                    className="w-44 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                    className="w-44 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
                   >
                     <option value="">Chưa gán</option>
                     {campaigns.map((campaign) => (
@@ -795,16 +852,23 @@ function compareTransactionNewestFirst(left: TransactionSummary, right: Transact
 
 function FundSummaryTable({ data }: { data: DashboardData }) {
   const totalCampaignIncome = data.campaigns.reduce((sum, campaign) => sum + campaign.income, 0);
+  const allocatedOpeningBalance = data.campaigns.reduce((sum, campaign) => sum + campaign.openingBalance, 0);
   const totalExpenses = data.overview.totalExpenses;
-  const currentAmount = totalCampaignIncome - totalExpenses;
+  const currentAmount = (data.openingBalance?.bankBalance ?? 0) + data.overview.totalIncome - totalExpenses;
   const bankDifference = data.overview.bankBalance - currentAmount;
 
   const rows = [
+    ...(data.openingBalance ? [{
+      label: "Số dư đầu kỳ",
+      value: data.openingBalance.bankBalance,
+      note: `Chốt ngày ${dateOnly(data.openingBalance.cutoffDate)}; đã phân bổ ${money(allocatedOpeningBalance)}, chưa phân bổ ${money(data.openingBalance.unallocatedBalance)}.`,
+      className: "text-indigo-700",
+    }] : []),
     {
       label: "Tổng thu các thiện pháp",
       value: totalCampaignIncome,
       note: "Cộng tổng thu của toàn bộ thiện pháp trong bảng 1.",
-      className: "text-emerald-700",
+      className: "text-indigo-700",
     },
     {
       label: "Tổng chi đã ghi nhận",
@@ -868,6 +932,80 @@ function FundSummaryTable({ data }: { data: DashboardData }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function OpeningBalanceModal({
+  data,
+  isSaving,
+  onClose,
+  onSubmit,
+}: {
+  data: DashboardData;
+  isSaving: boolean;
+  onClose: () => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/50 px-4 py-8">
+      <div className="w-full max-w-2xl rounded-xl border border-indigo-100 bg-white shadow-2xl">
+        <div className="flex items-start justify-between border-b border-indigo-100 px-5 py-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-indigo-700">Cài đặt hệ thống</p>
+            <h2 className="mt-1 text-lg font-semibold text-slate-950">Số dư đầu kỳ</h2>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-500 hover:bg-indigo-50" aria-label="Đóng">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {data.openingBalance ? (
+          <div className="space-y-4 px-5 py-5">
+            <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-950">
+              <div className="flex items-center gap-2 font-semibold"><ShieldCheck className="h-4 w-4" /> Mốc đã được khóa</div>
+              <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+                <MiniStat label="Ngày chốt" value={dateOnly(data.openingBalance.cutoffDate)} />
+                <MiniStat label="Số dư ngân hàng" value={money(data.openingBalance.bankBalance)} />
+                <MiniStat label="Chưa phân bổ" value={money(data.openingBalance.unallocatedBalance)} />
+                <MiniStat label="Ngày tạo" value={dateTime(data.openingBalance.createdAt)} />
+              </dl>
+            </div>
+            <p className="text-sm leading-6 text-slate-600">Không có nút sửa hoặc reset tại giao diện. Nếu cần điều chỉnh, phải thực hiện bằng migration có lưu vết để tránh làm sai số liệu.</p>
+          </div>
+        ) : (
+          <form onSubmit={onSubmit} className="space-y-5 px-5 py-5">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-900">
+              Chỉ thực hiện một lần. Sau khi chốt, hệ thống không cho khởi tạo lại qua giao diện hoặc API.
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input name="cutoffDate" type="date" label="Ngày bắt đầu quản lý" required />
+              <Input name="bankBalance" inputMode="numeric" label="Số dư ngân hàng tại ngày chốt" placeholder="125000000" required />
+            </div>
+            <div>
+              <div className="mb-2 text-sm font-medium text-slate-700">Phân bổ cho từng thiện pháp</div>
+              <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg border border-slate-200 p-3">
+                {data.campaigns.map((campaign) => (
+                  <label key={campaign.id} className="grid grid-cols-[1fr_180px] items-center gap-3 text-sm">
+                    <span className="min-w-0 truncate text-slate-700">{campaign.code} — {campaign.name}</span>
+                    <input name={`campaign-${campaign.id}`} inputMode="numeric" placeholder="0" className="rounded-lg border border-slate-300 px-3 py-2 text-right outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" />
+                  </label>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-slate-500">Phần còn lại tự động được ghi nhận là “Chưa phân bổ”.</p>
+            </div>
+            <Textarea name="note" label="Ghi chú / căn cứ đối soát" placeholder="Sao kê chốt số dư, người xác nhận..." />
+            <Input name="confirmation" label={'Nhập chính xác “CHỐT SỐ DƯ” để xác nhận'} autoComplete="off" required />
+            <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+              <button type="button" onClick={onClose} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Hủy</button>
+              <button disabled={isSaving} className="inline-flex items-center gap-2 rounded-lg bg-indigo-700 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-800 disabled:opacity-60">
+                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                Chốt và khóa số dư
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   );
 }
@@ -992,7 +1130,7 @@ function CampaignModal({
               </button>
               <button
                 disabled={isSaving}
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-700 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-indigo-700 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Tags className="h-4 w-4" />}
                 {campaign ? "Cập nhật" : "Tạo thiện pháp"}
@@ -1007,7 +1145,7 @@ function CampaignModal({
 
 function SetupScreen({ state }: { state: Exclude<DashboardState, { ok: true }> }) {
   return (
-    <div className="min-h-screen bg-[#f7f7f4] px-4 py-8 text-zinc-950">
+    <div className="min-h-screen bg-[#f4f6ff] px-4 py-8 text-zinc-950">
       <div className="mx-auto max-w-3xl rounded-md border border-zinc-200 bg-white p-6 shadow-sm">
         <div className="flex items-start gap-3">
           <AlertCircle className="mt-1 h-5 w-5 text-amber-600" />
@@ -1029,8 +1167,8 @@ function SetupScreen({ state }: { state: Exclude<DashboardState, { ok: true }> }
   );
 }
 
-function HeaderStat({ label, value, tone = "zinc" }: { label: string; value: string; tone?: "zinc" | "emerald" | "amber" }) {
-  const color = tone === "emerald" ? "text-emerald-700" : tone === "amber" ? "text-amber-700" : "text-zinc-950";
+function HeaderStat({ label, value, tone = "zinc" }: { label: string; value: string; tone?: "zinc" | "indigo" | "amber" }) {
+  const color = tone === "indigo" ? "text-indigo-700" : tone === "amber" ? "text-amber-700" : "text-zinc-950";
   return (
     <div className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2">
       <div className="text-xs text-zinc-500">{label}</div>
@@ -1126,7 +1264,7 @@ function Input({
       <span className="font-medium text-zinc-700">{label}</span>
       <input
         {...props}
-        className={`mt-1 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 ${className}`}
+        className={`mt-1 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 ${className}`}
       />
     </label>
   );
@@ -1144,7 +1282,7 @@ function Textarea({
       <textarea
         rows={rows}
         {...props}
-        className={`mt-1 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 ${className}`}
+        className={`mt-1 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 ${className}`}
       />
     </label>
   );
@@ -1161,7 +1299,7 @@ function Select({
       <span className="font-medium text-zinc-700">{label}</span>
       <select
         {...props}
-        className={`mt-1 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 ${className}`}
+        className={`mt-1 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 ${className}`}
       >
         {children}
       </select>
@@ -1177,7 +1315,7 @@ function StatusMessages({ message, error }: { message: string | null; error: str
   return (
     <div
       className={`rounded-md border p-3 text-sm ${
-        error ? "border-rose-200 bg-rose-50 text-rose-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"
+        error ? "border-rose-200 bg-rose-50 text-rose-700" : "border-indigo-200 bg-indigo-50 text-indigo-700"
       }`}
     >
       <div className="flex items-start gap-2">
@@ -1191,7 +1329,7 @@ function StatusMessages({ message, error }: { message: string | null; error: str
 function StatLine({ label, value }: { label: string; value: number }) {
   return (
     <div>
-      <dt className="text-xs text-emerald-700/70">{label}</dt>
+      <dt className="text-xs text-indigo-700/70">{label}</dt>
       <dd className="font-semibold">{value.toLocaleString("vi-VN")}</dd>
     </div>
   );
@@ -1231,6 +1369,11 @@ async function readJson<T>(response: Response): Promise<T> {
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Có lỗi không xác định.";
+}
+
+function parseMoneyInput(value: FormDataEntryValue | null) {
+  const parsed = Number(String(value ?? "").replace(/[^\d.-]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function money(value: number) {
