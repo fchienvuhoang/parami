@@ -148,7 +148,7 @@ function PublicTransactionCard({ transaction }: { transaction: PublicCampaignTra
     <article className="rounded-md border border-zinc-200 bg-white p-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-xs text-zinc-500">{dateOnly(transaction.transactionDate)}</div>
+          <div className="text-xs tabular-nums text-zinc-500">{transactionDateTime(transaction.transactionDate)}</div>
           <div className={`mt-1 inline-flex rounded-md border px-2 py-1 text-xs font-medium ${meta.className}`}>
             {meta.label}
           </div>
@@ -169,7 +169,7 @@ function PublicTransactionRow({ transaction }: { transaction: PublicCampaignTran
 
   return (
     <tr className="hover:bg-zinc-50">
-      <td className="whitespace-nowrap px-3 py-2 align-top text-zinc-600">{dateOnly(transaction.transactionDate)}</td>
+      <td className="whitespace-nowrap px-3 py-2 align-top tabular-nums text-zinc-600">{transactionDateTime(transaction.transactionDate)}</td>
       <td className="max-w-2xl px-3 py-2 align-top">
         <div className="whitespace-pre-wrap break-words font-medium text-zinc-900">{transaction.description}</div>
       </td>
@@ -240,10 +240,14 @@ function money(value: number) {
   }).format(value || 0);
 }
 
-function dateOnly(value: string) {
+function transactionDateTime(value: string) {
   return new Intl.DateTimeFormat("vi-VN", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
   }).format(new Date(value));
 }

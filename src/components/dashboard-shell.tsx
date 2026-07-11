@@ -576,7 +576,7 @@ function TransactionTable({
                 key={transaction.id}
                 className={transaction.campaign ? "hover:bg-zinc-50" : "bg-rose-50/50 hover:bg-rose-50"}
               >
-                <td className="whitespace-nowrap px-3 py-2 text-zinc-600">{dateOnly(transaction.transactionDate)}</td>
+                <td className="whitespace-nowrap px-3 py-2 tabular-nums text-zinc-600">{transactionDateTime(transaction.transactionDate)}</td>
                 <td className="max-w-md px-3 py-2 align-top">
                   <div className="whitespace-pre-wrap break-words font-medium text-zinc-900">
                     {transaction.description}
@@ -781,7 +781,7 @@ function DebitTransactionTable({
                 className={transaction.campaign ? "hover:bg-zinc-50" : "bg-amber-50/60 hover:bg-amber-50"}
               >
                 <td className="whitespace-nowrap px-3 py-2 align-top text-zinc-600">
-                  {dateOnly(transaction.transactionDate)}
+                  {transactionDateTime(transaction.transactionDate)}
                 </td>
                 <td className="max-w-md px-3 py-2 align-top">
                   <div className="whitespace-pre-wrap break-words font-medium text-zinc-900">
@@ -1389,6 +1389,18 @@ function dateOnly(value: string) {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+  }).format(new Date(value));
+}
+
+function transactionDateTime(value: string) {
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
   }).format(new Date(value));
 }
 
