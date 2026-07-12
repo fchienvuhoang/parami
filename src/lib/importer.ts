@@ -3,8 +3,8 @@ import { PrismaClientKnownRequestError, type InputJsonObject } from "@prisma/cli
 import { classifyDescription, type KeywordRule } from "@/lib/classifier";
 import { toPrismaDecimal } from "@/lib/money";
 import { getPrisma } from "@/lib/prisma";
-import { parseBidvStatement } from "@/lib/bidv";
 import { normalizeTransferText } from "@/lib/text";
+import { parseVibStatement } from "@/lib/vib";
 
 export type ImportResult = {
   batchId: string;
@@ -23,9 +23,9 @@ type TransactionClient = Omit<
   "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
 >;
 
-export async function importBidvStatement(statementText: string) {
+export async function importVibStatement(fileBuffer: Buffer, fileName: string) {
   const prisma = getPrisma();
-  const parsed = parseBidvStatement(statementText);
+  const parsed = await parseVibStatement(fileBuffer);
   const rules = await loadKeywordRules(prisma);
   const openingBalance = await prisma.openingBalance.findUnique({
     where: { id: "system-opening-balance" },
@@ -49,7 +49,7 @@ export async function importBidvStatement(statementText: string) {
   }
 
   return prisma.$transaction(async (tx: TransactionClient) => {
-    const accountNumber = "BIDV_UNKNOWN";
+    const accountNumber = parsed.meta.accountNumber;
     const account = await tx.bankAccount.upsert({
       where: { accountNumber },
       update: {
@@ -69,7 +69,7 @@ export async function importBidvStatement(statementText: string) {
 
     const batch = await tx.importBatch.create({
       data: {
-        sourceLabel: "Dán sao kê BIDV",
+        sourceLabel: fileName,
         sourceBank: parsed.meta.sourceBank,
         accountId: account.id,
         fromDate: parsed.meta.fromDate,
@@ -139,7 +139,7 @@ export async function importBidvStatement(statementText: string) {
 
     return {
       batchId: batch.id,
-      sourceLabel: "Dán sao kê BIDV",
+      sourceLabel: fileName,
       totalRows: parsed.rows.length,
       insertedRows: created.count,
       duplicateRows,

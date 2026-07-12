@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api";
-import { importBidvStatement } from "@/lib/importer";
+import { importVibStatement } from "@/lib/importer";
 import {
   invalidatePublicCampaignCache,
   warmPublicCampaignCaches,
@@ -10,13 +10,19 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const statementText = typeof body?.statementText === "string" ? body.statementText.trim() : "";
-    if (!statementText) {
-      return NextResponse.json({ error: "Vui lòng dán nội dung sao kê BIDV." }, { status: 400 });
+    const formData = await request.formData();
+    const file = formData.get("statementFile");
+    if (!(file instanceof File) || file.size === 0) {
+      return NextResponse.json({ error: "Vui lòng chọn file sao kê VIB định dạng Excel." }, { status: 400 });
+    }
+    if (!file.name.toLowerCase().endsWith(".xlsx")) {
+      return NextResponse.json({ error: "Chỉ hỗ trợ file Excel .xlsx xuất từ VIB." }, { status: 400 });
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: "File sao kê vượt quá dung lượng 10 MB." }, { status: 400 });
     }
 
-    const result = await importBidvStatement(statementText);
+    const result = await importVibStatement(Buffer.from(await file.arrayBuffer()), file.name);
     const affectedCodes = invalidatePublicCampaignCache(result.affectedCampaignCodes);
     await warmPublicCampaignCaches(affectedCodes);
 

@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Quản lý thiện pháp",
-  description: "Phân loại sao kê BIDV theo thiện pháp.",
+  description: "Phân loại sao kê VIB theo thiện pháp.",
 };
 
 export default function RootLayout({

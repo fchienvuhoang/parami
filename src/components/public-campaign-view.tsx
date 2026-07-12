@@ -1,6 +1,7 @@
 "use client";
 
 import { HeartHandshake, Search, Sparkles } from "lucide-react";
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import type { PublicCampaignData, PublicCampaignTransaction } from "@/lib/public-campaign";
 import { normalizeTransferText } from "@/lib/text";
@@ -39,14 +40,24 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
 
         <div className="relative mx-auto grid max-w-5xl gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center lg:gap-12 lg:py-14">
           <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full bg-rose-950 px-3 py-1.5 text-xs font-medium text-white shadow-sm">
-                <Sparkles className="h-3.5 w-3.5 text-rose-200" />
-                Thiện pháp <span className="font-mono text-rose-100">{data.code}</span>
-              </span>
-              <span className={`rounded-full border bg-white/70 px-3 py-1.5 text-xs font-medium backdrop-blur ${statusClassNames[data.status]}`}>
-                {statusLabels[data.status]}
-              </span>
+            <div className="flex items-center gap-4 sm:gap-5">
+              <Image
+                src="/parami-logo.png"
+                alt="Logo Pāramī Group"
+                width={112}
+                height={112}
+                priority
+                className="h-20 w-20 shrink-0 rounded-full border-2 border-white object-cover shadow-lg shadow-rose-950/10 sm:h-28 sm:w-28"
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-2 rounded-full bg-rose-950 px-3 py-1.5 text-xs font-medium text-white shadow-sm">
+                  <Sparkles className="h-3.5 w-3.5 text-rose-200" />
+                  Thiện pháp <span className="font-mono text-rose-100">{data.code}</span>
+                </span>
+                <span className={`rounded-full border bg-white/70 px-3 py-1.5 text-xs font-medium backdrop-blur ${statusClassNames[data.status]}`}>
+                  {statusLabels[data.status]}
+                </span>
+              </div>
             </div>
 
             <div className="mt-7 flex items-start gap-4">

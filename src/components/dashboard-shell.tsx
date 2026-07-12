@@ -125,8 +125,7 @@ function Dashboard({ data }: { data: DashboardData }) {
       const formData = new FormData(form);
       const response = await fetch("/api/import", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ statementText: formData.get("statementText") }),
+        body: formData,
       });
       const json = await readJson<ImportResponse>(response);
       setImportResult(json);
@@ -315,7 +314,7 @@ function Dashboard({ data }: { data: DashboardData }) {
         <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">
-              BIDV statement classifier
+              VIB statement classifier
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-normal text-zinc-950">
               Quản lý thiện pháp và sao kê
@@ -356,20 +355,24 @@ function Dashboard({ data }: { data: DashboardData }) {
             <div className="min-w-0 flex-1">
               <PanelTitle icon={Upload} title="Import sao kê" />
               <form className="mt-4 grid gap-3" onSubmit={handleImport}>
-                <textarea
-                  name="statementText"
-                  required
-                  rows={9}
-                  spellCheck={false}
-                  placeholder={"Ngày giao dịch\tNội dung giao dịch\tSố tiền\tSố dư\tMã giao dịch\n10/07/2026 07:43:11\tTHU PHI BSMS T06/2026 CIF 26152572\t-11000 VND\t37007 VND\t0792HcJq-8AU3U9ma4"}
-                  className="block w-full resize-y rounded-md border border-zinc-300 bg-white px-3 py-2 font-mono text-xs leading-5 placeholder:text-zinc-400"
-                />
+                <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-4 py-8 text-center hover:border-indigo-400 hover:bg-indigo-50/40">
+                  <FileSpreadsheet className="h-8 w-8 text-indigo-600" />
+                  <span className="text-sm font-medium text-zinc-800">Chọn file sao kê VIB</span>
+                  <span className="text-xs text-zinc-500">File Excel .xlsx, tối đa 10 MB</span>
+                  <input
+                    name="statementFile"
+                    type="file"
+                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    required
+                    className="mt-1 block max-w-full text-xs text-zinc-600 file:mr-3 file:rounded-md file:border-0 file:bg-indigo-100 file:px-3 file:py-2 file:font-medium file:text-indigo-700"
+                  />
+                </label>
                 <button
                   disabled={isImporting}
                   className="inline-flex items-center justify-center gap-2 rounded-md bg-zinc-950 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                  Import nội dung đã dán
+                  Import file Excel
                 </button>
               </form>
               {data.latestImport ? (
