@@ -5,7 +5,6 @@ import { toPrismaDecimal } from "@/lib/money";
 import { getPrisma } from "@/lib/prisma";
 import { normalizeTransferText } from "@/lib/text";
 import { parseVibStatement } from "@/lib/vib";
-import { parseBidvPdfStatement } from "@/lib/bidv-pdf";
 
 export type ImportResult = {
   batchId: string;
@@ -28,7 +27,10 @@ export async function importBankStatement(workspace: BankWorkspace, fileBuffer: 
   const prisma = getPrisma();
   const parsed = workspace === "VIB"
     ? await parseVibStatement(fileBuffer)
-    : await parseBidvPdfStatement(fileBuffer, process.env.BIDV_PDF_PASSWORD || "20021991");
+    : await (async () => {
+        const { parseBidvPdfStatement } = await import("@/lib/bidv-pdf");
+        return parseBidvPdfStatement(fileBuffer, process.env.BIDV_PDF_PASSWORD || "20021991");
+      })();
   const rules = await loadKeywordRules(prisma, workspace);
   const openingBalance = await prisma.openingBalance.findUnique({
     where: { workspace },

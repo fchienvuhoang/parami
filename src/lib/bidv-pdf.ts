@@ -1,5 +1,3 @@
-import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
-
 type PositionedText = { text: string; x: number; y: number };
 
 export type ParsedBidvPdfStatement = {
@@ -26,6 +24,7 @@ export type ParsedBidvPdfStatement = {
 };
 
 export async function parseBidvPdfStatement(buffer: Buffer, password = "20021991"): Promise<ParsedBidvPdfStatement> {
+  const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
   let document;
   try {
     document = await getDocument({
