@@ -1151,24 +1151,38 @@ function CampaignModal({
 }
 
 function SetupScreen({ state }: { state: Exclude<DashboardState, { ok: true }> }) {
+  const isMissingConfiguration = state.reason === "DATABASE_NOT_CONFIGURED";
+
   return (
     <div className="min-h-screen bg-[#f4f6ff] px-4 py-8 text-zinc-950">
       <div className="mx-auto max-w-3xl rounded-md border border-zinc-200 bg-white p-6 shadow-sm">
         <div className="flex items-start gap-3">
           <AlertCircle className="mt-1 h-5 w-5 text-amber-600" />
           <div>
-            <h1 className="text-xl font-semibold">Cần cấu hình PostgreSQL</h1>
+            <h1 className="text-xl font-semibold">
+              {isMissingConfiguration ? "Cần cấu hình PostgreSQL" : "Không kết nối được cơ sở dữ liệu"}
+            </h1>
             <p className="mt-2 text-sm leading-6 text-zinc-600">{state.message}</p>
           </div>
         </div>
-        <div className="mt-5 space-y-3 text-sm">
-          <pre className="overflow-x-auto rounded-md bg-zinc-950 p-4 text-zinc-50">
-            <code>{'DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require"'}</code>
-          </pre>
-          <pre className="overflow-x-auto rounded-md bg-zinc-100 p-4 text-zinc-800">
-            <code>{"pnpm db:generate\npnpm db:push\npnpm db:seed\npnpm dev"}</code>
-          </pre>
-        </div>
+        {isMissingConfiguration ? (
+          <div className="mt-5 space-y-3 text-sm">
+            <pre className="overflow-x-auto rounded-md bg-zinc-950 p-4 text-zinc-50">
+              <code>{'DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require"'}</code>
+            </pre>
+            <pre className="overflow-x-auto rounded-md bg-zinc-100 p-4 text-zinc-800">
+              <code>{"pnpm db:generate\npnpm db:push\npnpm db:seed\npnpm dev"}</code>
+            </pre>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-5 rounded-md bg-zinc-950 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+          >
+            Thử lại
+          </button>
+        )}
       </div>
     </div>
   );
