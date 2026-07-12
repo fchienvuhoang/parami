@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { apiError } from "@/lib/api";
+import { getWorkspaceFromRequest } from "@/lib/auth";
 import { toPrismaDecimal } from "@/lib/money";
 import { getPrisma } from "@/lib/prisma";
 import { invalidatePublicCampaignCache, warmPublicCampaignCaches } from "@/lib/public-campaign";
@@ -21,8 +22,9 @@ const schema = z.object({
 export async function POST(request: Request) {
   try {
     const input = schema.parse(await request.json());
+    const workspace = await getWorkspaceFromRequest(request);
     const prisma = getPrisma();
-    const existing = await prisma.openingBalance.findUnique({ where: { id: "system-opening-balance" } });
+    const existing = await prisma.openingBalance.findUnique({ where: { workspace } });
     if (existing) {
       return NextResponse.json(
         { error: "Số dư đầu kỳ đã được chốt và không thể khởi tạo lại." },
@@ -34,7 +36,7 @@ export async function POST(request: Request) {
     if (campaignIds.length !== input.allocations.length) {
       return NextResponse.json({ error: "Mỗi thiện pháp chỉ được phân bổ một lần." }, { status: 400 });
     }
-    const campaignCount = await prisma.campaign.count({ where: { id: { in: campaignIds } } });
+    const campaignCount = await prisma.campaign.count({ where: { id: { in: campaignIds }, workspace } });
     if (campaignCount !== campaignIds.length) {
       return NextResponse.json({ error: "Có thiện pháp không còn tồn tại." }, { status: 400 });
     }
@@ -47,7 +49,8 @@ export async function POST(request: Request) {
     await prisma.$transaction(async (tx) => {
       const opening = await tx.openingBalance.create({
         data: {
-          id: "system-opening-balance",
+          id: `${workspace}-opening-balance`,
+          workspace,
           cutoffDate: new Date(`${input.cutoffDate}T00:00:00.000Z`),
           bankBalance: toPrismaDecimal(input.bankBalance),
           unallocatedBalance: toPrismaDecimal(input.bankBalance - allocated),
@@ -60,11 +63,13 @@ export async function POST(request: Request) {
         },
       });
 
-      const account = await tx.bankAccount.findFirst({ orderBy: { updatedAt: "desc" } });
+      const account = await tx.bankAccount.findFirst({ where: { workspace }, orderBy: { updatedAt: "desc" } });
       if (!account) {
         await tx.bankAccount.create({
           data: {
-            accountNumber: "BIDV_UNKNOWN",
+            workspace,
+            bankName: workspace,
+            accountNumber: `${workspace}_UNKNOWN`,
             currentBalance: opening.bankBalance,
             balanceAsOf: opening.cutoffDate,
           },
@@ -73,7 +78,7 @@ export async function POST(request: Request) {
     });
 
     const codes = await prisma.campaign.findMany({
-      where: { id: { in: campaignIds } },
+      where: { id: { in: campaignIds }, workspace },
       select: { code: true },
     });
     const affectedCodes = invalidatePublicCampaignCache(codes.map((item) => item.code));

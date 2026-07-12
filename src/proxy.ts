@@ -10,8 +10,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const isAuthenticated = await verifyAdminSessionToken(request.cookies.get(ADMIN_SESSION_COOKIE)?.value);
-  if (isAuthenticated) {
+  const workspace = await verifyAdminSessionToken(request.cookies.get(ADMIN_SESSION_COOKIE)?.value);
+  if (workspace) {
     return NextResponse.next();
   }
 

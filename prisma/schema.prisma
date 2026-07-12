@@ -24,6 +24,11 @@ enum ClassificationStatus {
   MANUAL
 }
 
+enum BankWorkspace {
+  VIB
+  BIDV
+}
+
 model BankAccount {
   id             String            @id @default(cuid())
   bankName       String            @default("BIDV")
@@ -34,6 +39,7 @@ model BankAccount {
   balanceAsOf    DateTime?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
+  workspace      BankWorkspace     @default(VIB)
   importBatches  ImportBatch[]
   transactions   BankTransaction[]
 
@@ -55,6 +61,7 @@ model ImportBatch {
   duplicateRows  Int               @default(0)
   unmatchedRows  Int               @default(0)
   importedAt     DateTime          @default(now())
+  workspace      BankWorkspace     @default(VIB)
   transactions   BankTransaction[]
 
   @@index([importedAt])
@@ -71,6 +78,7 @@ model Campaign {
   endDate                  DateTime?
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
+  workspace                BankWorkspace             @default(VIB)
   keywords                 CampaignKeyword[]
   transactions             BankTransaction[]
   expenses                 Expense[]
@@ -86,6 +94,7 @@ model OpeningBalance {
   unallocatedBalance Decimal                    @db.Decimal(18, 2)
   note               String?                    @db.Text
   createdAt          DateTime                   @default(now())
+  workspace          BankWorkspace              @unique
   allocations        OpeningBalanceAllocation[]
 }
 
@@ -135,6 +144,7 @@ model BankTransaction {
   raw                   Json?
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
+  workspace             BankWorkspace        @default(VIB)
 
   @@index([transactionDate, statementRow, createdAt])
   @@index([campaignId, transactionDate])
@@ -154,6 +164,7 @@ model Expense {
   spentAt    DateTime
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+  workspace  BankWorkspace @default(VIB)
 
   @@index([spentAt])
   @@index([campaignId, spentAt])

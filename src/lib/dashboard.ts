@@ -1,4 +1,5 @@
 import { decimalToNumber } from "@/lib/money";
+import type { BankWorkspace } from "@prisma/client";
 import { DatabaseNotConfiguredError, getPrisma } from "@/lib/prisma";
 
 export type DashboardState =
@@ -13,6 +14,7 @@ export type DashboardState =
     };
 
 export type DashboardData = {
+  workspace: BankWorkspace;
   overview: {
     totalIncome: number;
     totalDebit: number;
@@ -92,7 +94,7 @@ export type TransactionSummary = {
   } | null;
 };
 
-export async function getDashboardState(): Promise<DashboardState> {
+export async function getDashboardState(workspace: BankWorkspace): Promise<DashboardState> {
   try {
     const prisma = getPrisma();
 
@@ -110,6 +112,7 @@ export async function getDashboardState(): Promise<DashboardState> {
       openingBalance,
     ] = await Promise.all([
       prisma.campaign.findMany({
+        where: { workspace },
         include: {
           keywords: {
             orderBy: { createdAt: "asc" },
@@ -124,6 +127,7 @@ export async function getDashboardState(): Promise<DashboardState> {
       }),
       prisma.bankTransaction.groupBy({
         by: ["campaignId"],
+        where: { workspace },
         _sum: {
           creditAmount: true,
           debitAmount: true,
@@ -133,6 +137,7 @@ export async function getDashboardState(): Promise<DashboardState> {
         },
       }),
       prisma.bankTransaction.aggregate({
+        where: { workspace },
         _sum: {
           creditAmount: true,
           debitAmount: true,
@@ -141,6 +146,7 @@ export async function getDashboardState(): Promise<DashboardState> {
       }),
       prisma.bankTransaction.aggregate({
         where: {
+          workspace,
           campaignId: null,
           creditAmount: {
             gt: 0,
@@ -153,6 +159,7 @@ export async function getDashboardState(): Promise<DashboardState> {
       }),
       prisma.bankTransaction.aggregate({
         where: {
+          workspace,
           campaignId: null,
           debitAmount: {
             gt: 0,
@@ -165,10 +172,12 @@ export async function getDashboardState(): Promise<DashboardState> {
       }),
       prisma.bankTransaction.count({
         where: {
+          workspace,
           campaignId: null,
         },
       }),
       prisma.bankTransaction.findMany({
+        where: { workspace },
         include: {
           campaign: {
             select: {
@@ -183,6 +192,7 @@ export async function getDashboardState(): Promise<DashboardState> {
       }),
       prisma.bankTransaction.findMany({
         where: {
+          workspace,
           debitAmount: {
             gt: 0,
           },
@@ -200,13 +210,15 @@ export async function getDashboardState(): Promise<DashboardState> {
         take: 500,
       }),
       prisma.bankAccount.findFirst({
+        where: { workspace },
         orderBy: { updatedAt: "desc" },
       }),
       prisma.importBatch.findFirst({
+        where: { workspace },
         orderBy: { importedAt: "desc" },
       }),
       prisma.openingBalance.findUnique({
-        where: { id: "system-opening-balance" },
+        where: { workspace },
         include: { allocations: true },
       }),
     ]);
@@ -260,6 +272,7 @@ export async function getDashboardState(): Promise<DashboardState> {
     return {
       ok: true,
       data: {
+        workspace,
         overview: {
           totalIncome,
           totalDebit,

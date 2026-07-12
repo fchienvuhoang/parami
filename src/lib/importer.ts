@@ -1,10 +1,11 @@
-import type { PrismaClient } from "@prisma/client";
+import type { BankWorkspace, PrismaClient } from "@prisma/client";
 import { PrismaClientKnownRequestError, type InputJsonObject } from "@prisma/client/runtime/client";
 import { classifyDescription, type KeywordRule } from "@/lib/classifier";
 import { toPrismaDecimal } from "@/lib/money";
 import { getPrisma } from "@/lib/prisma";
 import { normalizeTransferText } from "@/lib/text";
 import { parseVibStatement } from "@/lib/vib";
+import { parseBidvPdfStatement } from "@/lib/bidv-pdf";
 
 export type ImportResult = {
   batchId: string;
@@ -23,12 +24,14 @@ type TransactionClient = Omit<
   "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
 >;
 
-export async function importVibStatement(fileBuffer: Buffer, fileName: string) {
+export async function importBankStatement(workspace: BankWorkspace, fileBuffer: Buffer, fileName: string) {
   const prisma = getPrisma();
-  const parsed = await parseVibStatement(fileBuffer);
-  const rules = await loadKeywordRules(prisma);
+  const parsed = workspace === "VIB"
+    ? await parseVibStatement(fileBuffer)
+    : await parseBidvPdfStatement(fileBuffer, process.env.BIDV_PDF_PASSWORD || "20021991");
+  const rules = await loadKeywordRules(prisma, workspace);
   const openingBalance = await prisma.openingBalance.findUnique({
-    where: { id: "system-opening-balance" },
+    where: { workspace },
     select: { cutoffDate: true },
   });
 
@@ -53,14 +56,18 @@ export async function importVibStatement(fileBuffer: Buffer, fileName: string) {
     const account = await tx.bankAccount.upsert({
       where: { accountNumber },
       update: {
+        workspace,
         bankName: parsed.meta.sourceBank,
+        accountName: "accountName" in parsed.meta ? parsed.meta.accountName : undefined,
         currency: parsed.meta.currency,
         currentBalance: toPrismaDecimal(parsed.meta.closingBalance ?? 0),
         balanceAsOf: parsed.meta.toDate,
       },
       create: {
+        workspace,
         bankName: parsed.meta.sourceBank,
         accountNumber,
+        accountName: "accountName" in parsed.meta ? parsed.meta.accountName : null,
         currency: parsed.meta.currency,
         currentBalance: toPrismaDecimal(parsed.meta.closingBalance ?? 0),
         balanceAsOf: parsed.meta.toDate,
@@ -69,12 +76,15 @@ export async function importVibStatement(fileBuffer: Buffer, fileName: string) {
 
     const batch = await tx.importBatch.create({
       data: {
+        workspace,
         sourceLabel: fileName,
         sourceBank: parsed.meta.sourceBank,
         accountId: account.id,
         fromDate: parsed.meta.fromDate,
         toDate: parsed.meta.toDate,
-        openingBalance: null,
+        openingBalance: "openingBalance" in parsed.meta && parsed.meta.openingBalance != null
+          ? toPrismaDecimal(parsed.meta.openingBalance)
+          : null,
         closingBalance:
           parsed.meta.closingBalance == null ? null : toPrismaDecimal(parsed.meta.closingBalance),
         totalRows: parsed.rows.length,
@@ -83,7 +93,7 @@ export async function importVibStatement(fileBuffer: Buffer, fileName: string) {
 
     const transactionCodes = [...uniqueRows.keys()];
     const existing = await tx.bankTransaction.findMany({
-      where: { transactionCode: { in: transactionCodes } },
+      where: { workspace, transactionCode: { in: transactionCodes } },
       select: { transactionCode: true },
     });
     const existingCodes = new Set(existing.map((item) => item.transactionCode));
@@ -93,6 +103,7 @@ export async function importVibStatement(fileBuffer: Buffer, fileName: string) {
       const classification = classifyDescription(row.description, rules);
 
       return {
+        workspace,
         accountId: account.id,
         importBatchId: batch.id,
         campaignId: classification.campaignId,
@@ -151,11 +162,12 @@ export async function importVibStatement(fileBuffer: Buffer, fileName: string) {
   });
 }
 
-export async function reclassifyImportedTransactions() {
+export async function reclassifyImportedTransactions(workspace: BankWorkspace) {
   const prisma = getPrisma();
-  const rules = await loadKeywordRules(prisma);
+  const rules = await loadKeywordRules(prisma, workspace);
   const transactions = await prisma.bankTransaction.findMany({
     where: {
+      workspace,
       classificationStatus: {
         not: "MANUAL",
       },
@@ -220,10 +232,11 @@ export async function reclassifyImportedTransactions() {
   };
 }
 
-async function loadKeywordRules(prisma: PrismaClient): Promise<KeywordRule[]> {
+async function loadKeywordRules(prisma: PrismaClient, workspace: BankWorkspace): Promise<KeywordRule[]> {
   const keywords = await prisma.campaignKeyword.findMany({
     where: {
       active: true,
+      campaign: { workspace },
     },
     include: {
       campaign: {

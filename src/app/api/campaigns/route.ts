@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { apiError } from "@/lib/api";
+import { getWorkspaceFromRequest } from "@/lib/auth";
 import { getPrisma } from "@/lib/prisma";
 import { makeCampaignCode, normalizeTransferText } from "@/lib/text";
 import { invalidatePublicCampaignCache, warmPublicCampaignCaches } from "@/lib/public-campaign";
@@ -13,10 +14,12 @@ const campaignSchema = z.object({
   keywords: z.array(z.string().min(1)).default([]),
 });
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const workspace = await getWorkspaceFromRequest(request);
     const prisma = getPrisma();
     const campaigns = await prisma.campaign.findMany({
+      where: { workspace },
       include: {
         keywords: {
           orderBy: { createdAt: "asc" },
@@ -34,12 +37,14 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = campaignSchema.parse(await request.json());
+    const workspace = await getWorkspaceFromRequest(request);
     const prisma = getPrisma();
     const code = makeCampaignCode(body.code);
     const keywords = uniqueKeywords([body.code, ...body.keywords]);
 
     const campaign = await prisma.campaign.create({
       data: {
+        workspace,
         code,
         name: body.name.trim(),
         description: body.description?.trim() || null,

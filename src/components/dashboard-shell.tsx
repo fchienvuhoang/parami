@@ -314,7 +314,7 @@ function Dashboard({ data }: { data: DashboardData }) {
         <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">
-              VIB statement classifier
+              {data.workspace} statement classifier
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-normal text-zinc-950">
               Quản lý thiện pháp và sao kê
@@ -357,12 +357,16 @@ function Dashboard({ data }: { data: DashboardData }) {
               <form className="mt-4 grid gap-3" onSubmit={handleImport}>
                 <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-4 py-8 text-center hover:border-indigo-400 hover:bg-indigo-50/40">
                   <FileSpreadsheet className="h-8 w-8 text-indigo-600" />
-                  <span className="text-sm font-medium text-zinc-800">Chọn file sao kê VIB</span>
-                  <span className="text-xs text-zinc-500">File Excel .xlsx, tối đa 10 MB</span>
+                  <span className="text-sm font-medium text-zinc-800">Chọn file sao kê {data.workspace}</span>
+                  <span className="text-xs text-zinc-500">
+                    {data.workspace === "VIB" ? "File Excel .xlsx" : "File PDF BIDV"}, tối đa 10 MB
+                  </span>
                   <input
                     name="statementFile"
                     type="file"
-                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    accept={data.workspace === "VIB"
+                      ? ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                      : ".pdf,application/pdf"}
                     required
                     className="mt-1 block max-w-full text-xs text-zinc-600 file:mr-3 file:rounded-md file:border-0 file:bg-indigo-100 file:px-3 file:py-2 file:font-medium file:text-indigo-700"
                   />
@@ -372,7 +376,7 @@ function Dashboard({ data }: { data: DashboardData }) {
                   className="inline-flex items-center justify-center gap-2 rounded-md bg-zinc-950 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                  Import file Excel
+                  Import file {data.workspace === "VIB" ? "Excel" : "PDF"}
                 </button>
               </form>
               {data.latestImport ? (
