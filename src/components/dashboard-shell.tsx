@@ -788,7 +788,7 @@ function DebitTransactionTable({
                 className={transaction.campaign ? "hover:bg-zinc-50" : "bg-amber-50/60 hover:bg-amber-50"}
               >
                 <td className="whitespace-nowrap px-3 py-2 align-top text-zinc-600">
-                  {transactionDateTime(transaction.transactionDate)}
+                  {dateOnly(transaction.transactionDate)}
                 </td>
                 <td className="max-w-md px-3 py-2 align-top">
                   <div className="whitespace-pre-wrap break-words font-medium text-zinc-900">
