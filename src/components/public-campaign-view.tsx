@@ -216,16 +216,16 @@ function transactionMeta(transaction: PublicCampaignTransaction) {
     return {
       label: "Hùn phước",
       amount: transaction.creditAmount,
-      className: "border-rose-200 bg-rose-50 text-rose-700",
-      amountClassName: "text-rose-700",
+      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      amountClassName: "text-zinc-950",
     };
   }
 
   return {
     label: "Cúng dường",
     amount: transaction.debitAmount,
-    className: "border-amber-200 bg-amber-50 text-amber-700",
-    amountClassName: "text-amber-700",
+    className: "border-red-200 bg-red-50 text-red-700",
+    amountClassName: "text-red-700",
   };
 }
 
