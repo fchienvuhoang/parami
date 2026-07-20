@@ -569,7 +569,7 @@ function TransactionTable({
           <thead className="sticky top-0 bg-zinc-50 text-xs uppercase text-zinc-500">
             <tr>
               <th className="px-3 py-2">Ngày</th>
-              <th className="px-3 py-2">Diễn giải</th>
+              <th className="px-3 py-2">Nội dung chuyển khoản</th>
               <th className="px-3 py-2">Chi tiết</th>
               <th className="px-3 py-2 text-right">Có</th>
               <th className="px-3 py-2 text-right">Nợ</th>
@@ -774,7 +774,7 @@ function DebitTransactionTable({
           <thead className="sticky top-0 bg-zinc-50 text-xs uppercase text-zinc-500">
             <tr>
               <th className="px-3 py-2">Ngày</th>
-              <th className="px-3 py-2">Diễn giải</th>
+              <th className="px-3 py-2">Nội dung chuyển khoản</th>
               <th className="px-3 py-2">Chi tiết</th>
               <th className="px-3 py-2 text-right">Nợ</th>
               <th className="px-3 py-2">Thiện pháp</th>
