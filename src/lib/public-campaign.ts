@@ -1,7 +1,6 @@
 import { revalidateTag, unstable_cache } from "next/cache";
 import { decimalToNumber } from "@/lib/money";
 import { getPrisma } from "@/lib/prisma";
-import { redactPhoneNumbers } from "@/lib/privacy";
 import { makeCampaignCode } from "@/lib/text";
 
 export type PublicCampaignData = {
@@ -122,7 +121,7 @@ export async function getPublicCampaignData(code: string): Promise<PublicCampaig
       transactionDate: transaction.transactionDate.toISOString(),
       createdAt: transaction.createdAt.toISOString(),
       statementRow: transaction.statementRow,
-      description: redactPhoneNumbers(transaction.description),
+      description: transaction.description,
       debitAmount: decimalToNumber(transaction.debitAmount),
       creditAmount: decimalToNumber(transaction.creditAmount),
     })),
