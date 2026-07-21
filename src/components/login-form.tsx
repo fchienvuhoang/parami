@@ -17,7 +17,6 @@ export function LoginForm({
   nextPath: string;
 }) {
   const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
   const [error, setError] = useState<string | null>(authConfigured ? null : "ADMIN_PASSWORD chưa được cấu hình.");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -33,7 +32,6 @@ export function LoginForm({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          username,
           password,
           next: nextPath,
         }),
@@ -55,24 +53,12 @@ export function LoginForm({
   return (
     <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
       <label className="block text-sm">
-        <span className="font-medium text-zinc-700">Tên đăng nhập</span>
-        <input
-          autoFocus
-          value={username}
-          onChange={(event) => setUsername(event.target.value)}
-          autoComplete="username"
-          required
-          disabled={!authConfigured || isSubmitting}
-          placeholder="vib hoặc bidv"
-          className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-50"
-        />
-      </label>
-      <label className="block text-sm">
         <span className="font-medium text-zinc-700">Mật khẩu</span>
         <input
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           type="password"
+          autoFocus
           autoComplete="current-password"
           required
           disabled={!authConfigured || isSubmitting}

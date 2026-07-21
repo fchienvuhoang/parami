@@ -1,6 +1,6 @@
-# Quản lý thiện pháp và sao kê BIDV
+# Quản lý thiện pháp và sao kê VIB
 
-Ứng dụng Next.js tiếp nhận nội dung sao kê được copy trực tiếp từ bảng giao dịch BIDV, chống trùng theo mã giao dịch và phân loại nội dung theo bộ từ khóa của từng thiện pháp.
+Ứng dụng Next.js tiếp nhận file sao kê Excel từ VIB, chống trùng giao dịch và phân loại nội dung theo bộ từ khóa của từng thiện pháp.
 
 ## Định dạng sao kê
 
@@ -16,7 +16,7 @@ Ngày giao dịch\tNội dung giao dịch\tSố tiền\tSố dư\tMã giao dịc
 - Số dư có thể kết thúc bằng `VND`.
 - Mã giao dịch là khóa unique dùng để bỏ qua giao dịch đã import.
 
-Do nội dung copy từ BIDV không chứa số tài khoản, các giao dịch được gắn vào tài khoản nội bộ `BIDV_UNKNOWN`.
+Số tài khoản, số dư và giao dịch được đọc trực tiếp từ file sao kê VIB.
 
 ## Chạy dự án
 

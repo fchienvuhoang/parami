@@ -2,7 +2,6 @@ import type { BankWorkspace } from "@prisma/client";
 
 export const ADMIN_SESSION_COOKIE = "dhamma_admin_session";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
-const BIDV_PASSWORD_DIGEST = "6c245eb1136443d0f81549a058007b8b5510e3b90924aed3e1d06abb4c313d35";
 
 export function isAdminPasswordConfigured() {
   return Boolean(process.env.ADMIN_PASSWORD);
@@ -21,20 +20,14 @@ export async function createAdminSessionToken(workspace: BankWorkspace) {
 export async function verifyAdminSessionToken(token: string | undefined): Promise<BankWorkspace | null> {
   if (!token) return null;
   const [workspace, signature] = token.split(".");
-  if ((workspace !== "VIB" && workspace !== "BIDV") || !signature) return null;
+  if (workspace !== "VIB" || !signature) return null;
   const expected = await createAdminSessionToken(workspace);
   return constantTimeEqual(token, expected) ? workspace : null;
 }
 
-export async function verifyAdminCredentials(username: string, password: string): Promise<BankWorkspace | null> {
-  const normalized = username.trim().toLowerCase();
-  const workspace = normalized === "vib" ? "VIB" : normalized === "bidv" ? "BIDV" : null;
-  if (!workspace) return null;
-  if (workspace === "BIDV") {
-    return constantTimeEqual(await sha256Hex(password), BIDV_PASSWORD_DIGEST) ? workspace : null;
-  }
+export function verifyAdminPassword(password: string): BankWorkspace | null {
   const expected = process.env.ADMIN_PASSWORD;
-  return expected && constantTimeEqual(password, expected) ? workspace : null;
+  return expected && constantTimeEqual(password, expected) ? "VIB" : null;
 }
 
 export async function getWorkspaceFromRequest(request: Request): Promise<BankWorkspace> {
@@ -54,12 +47,7 @@ export function safeRedirectPath(value: unknown) {
 }
 
 function passwordForWorkspace(workspace: BankWorkspace) {
-  return workspace === "VIB" ? process.env.ADMIN_PASSWORD : BIDV_PASSWORD_DIGEST;
-}
-
-async function sha256Hex(value: string) {
-  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return Array.from(new Uint8Array(bytes)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return workspace === "VIB" ? process.env.ADMIN_PASSWORD : undefined;
 }
 
 async function hmacHex(secret: string, message: string) {

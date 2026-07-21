@@ -4,6 +4,7 @@ import {
   AlertCircle,
   ArrowUpFromLine,
   CheckCircle2,
+  Clock3,
   ExternalLink,
   FileSpreadsheet,
   LogOut,
@@ -359,14 +360,12 @@ function Dashboard({ data }: { data: DashboardData }) {
                   <FileSpreadsheet className="h-8 w-8 text-indigo-600" />
                   <span className="text-sm font-medium text-zinc-800">Chọn file sao kê {data.workspace}</span>
                   <span className="text-xs text-zinc-500">
-                    {data.workspace === "VIB" ? "File Excel .xlsx" : "File PDF BIDV"}, tối đa 10 MB
+                    File Excel .xlsx, tối đa 10 MB
                   </span>
                   <input
                     name="statementFile"
                     type="file"
-                    accept={data.workspace === "VIB"
-                      ? ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                      : ".pdf,application/pdf"}
+                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     required
                     className="mt-1 block max-w-full text-xs text-zinc-600 file:mr-3 file:rounded-md file:border-0 file:bg-indigo-100 file:px-3 file:py-2 file:font-medium file:text-indigo-700"
                   />
@@ -376,14 +375,32 @@ function Dashboard({ data }: { data: DashboardData }) {
                   className="inline-flex items-center justify-center gap-2 rounded-md bg-zinc-950 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                  Import file {data.workspace === "VIB" ? "Excel" : "PDF"}
+                  Import file Excel
                 </button>
               </form>
               {data.latestImport ? (
-                <p className="mt-3 text-xs leading-5 text-zinc-500">
-                  Lần import gần nhất: {data.latestImport.sourceLabel}, {dateTime(data.latestImport.importedAt)}
-                </p>
-              ) : null}
+                <div className="mt-4 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-950">
+                  <span className="shrink-0 rounded-lg bg-emerald-100 p-2 text-emerald-700">
+                    <Clock3 className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">
+                      Cập nhật sao kê gần nhất
+                    </p>
+                    <p className="mt-1 text-lg font-semibold leading-6 sm:text-xl">
+                      {dateTime(data.latestImport.importedAt)}
+                    </p>
+                    <p className="mt-1 truncate text-xs text-emerald-800/70" title={data.latestImport.sourceLabel}>
+                      File: {data.latestImport.sourceLabel}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
+                  <Clock3 className="h-5 w-5 shrink-0 text-amber-600" />
+                  <p className="text-sm font-medium">Chưa có lần cập nhật sao kê nào.</p>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-3 xl:w-80">

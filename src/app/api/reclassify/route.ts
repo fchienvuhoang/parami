@@ -11,8 +11,8 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
-    const workspace = await getWorkspaceFromRequest(request);
-    const result = await reclassifyImportedTransactions(workspace);
+    await getWorkspaceFromRequest(request);
+    const result = await reclassifyImportedTransactions();
     const affectedCodes = invalidatePublicCampaignCache(result.affectedCampaignCodes);
     await warmPublicCampaignCaches(affectedCodes);
     return NextResponse.json(result);
