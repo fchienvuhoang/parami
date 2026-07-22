@@ -95,6 +95,44 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
 
       <main className="mx-auto max-w-5xl space-y-4 px-4 py-4 sm:px-6">
         <section className="rounded-md border border-zinc-200 bg-white p-3 shadow-sm sm:p-4">
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-950">Thống kê khoản chi theo tháng</h2>
+            <p className="mt-1 text-xs text-zinc-500">Tổng các giao dịch cúng dường trong từng tháng</p>
+          </div>
+
+          {data.monthlyExpenses.length > 0 ? (
+            <div className="mt-4 overflow-hidden rounded-md border border-zinc-200">
+              <table className="w-full text-sm">
+                <thead className="bg-zinc-50 text-xs uppercase text-zinc-500">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Tháng</th>
+                    <th className="px-3 py-2 text-right">Số khoản chi</th>
+                    <th className="px-3 py-2 text-right">Tổng chi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 bg-white">
+                  {data.monthlyExpenses.map((summary) => (
+                    <tr key={summary.month}>
+                      <td className="px-3 py-2 font-medium text-zinc-900">{monthLabel(summary.month)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-zinc-600">
+                        {summary.transactionCount.toLocaleString("vi-VN")}
+                      </td>
+                      <td className="px-3 py-2 text-right font-semibold tabular-nums text-red-700">
+                        {money(summary.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="mt-4 rounded-md border border-dashed border-zinc-200 px-3 py-8 text-center text-sm text-zinc-500">
+              Chưa có khoản chi.
+            </div>
+          )}
+        </section>
+
+        <section className="rounded-md border border-zinc-200 bg-white p-3 shadow-sm sm:p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-sm font-semibold text-zinc-950">Danh sách giao dịch</h2>
@@ -249,6 +287,11 @@ function money(value: number) {
     currency: "VND",
     maximumFractionDigits: 0,
   }).format(value || 0);
+}
+
+function monthLabel(value: string) {
+  const [year, month] = value.split("-");
+  return `Tháng ${month}/${year}`;
 }
 
 function transactionDateTime(value: string) {
