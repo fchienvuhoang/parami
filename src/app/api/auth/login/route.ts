@@ -6,12 +6,11 @@ import {
   getAdminSessionMaxAge,
   isAdminPasswordConfigured,
   safeRedirectPath,
-  verifyAdminCredentials,
+  verifyAdminPassword,
 } from "@/lib/auth";
 import { apiError } from "@/lib/api";
 
 const loginSchema = z.object({
-  username: z.string().min(1),
   password: z.string().min(1),
   next: z.string().optional().nullable(),
 });
@@ -23,9 +22,9 @@ export async function POST(request: Request) {
     }
 
     const body = loginSchema.parse(await request.json());
-    const workspace = await verifyAdminCredentials(body.username, body.password);
+    const workspace = verifyAdminPassword(body.password);
     if (!workspace) {
-      return NextResponse.json({ error: "Tên đăng nhập hoặc mật khẩu không đúng." }, { status: 401 });
+      return NextResponse.json({ error: "Mật khẩu không đúng." }, { status: 401 });
     }
 
     const response = NextResponse.json({

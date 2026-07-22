@@ -26,12 +26,11 @@ enum ClassificationStatus {
 
 enum BankWorkspace {
   VIB
-  BIDV
 }
 
 model BankAccount {
   id             String            @id @default(cuid())
-  bankName       String            @default("BIDV")
+  bankName       String            @default("VIB")
   accountNumber  String            @unique
   accountName    String?
   currency       String            @default("VND")
@@ -48,8 +47,8 @@ model BankAccount {
 
 model ImportBatch {
   id             String            @id @default(cuid())
-  sourceLabel    String            @default("Dán sao kê BIDV")
-  sourceBank     String            @default("BIDV")
+  sourceLabel    String            @default("Sao kê VIB Excel")
+  sourceBank     String            @default("VIB")
   accountId      String?
   account        BankAccount?      @relation(fields: [accountId], references: [id], onDelete: SetNull)
   fromDate       DateTime?

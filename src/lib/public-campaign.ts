@@ -1,7 +1,6 @@
 import { revalidateTag, unstable_cache } from "next/cache";
 import { decimalToNumber } from "@/lib/money";
 import { getPrisma } from "@/lib/prisma";
-import { redactPhoneNumbers } from "@/lib/privacy";
 import { makeCampaignCode } from "@/lib/text";
 
 export type PublicCampaignData = {
@@ -32,6 +31,38 @@ export type PublicCampaignTransaction = {
   debitAmount: number;
   creditAmount: number;
 };
+
+export type PublicCampaignListItem = {
+  code: string;
+  name: string;
+  description: string | null;
+};
+
+const PUBLIC_CAMPAIGN_LIST_TAG = "public-campaign-list";
+
+export async function getPublicCampaignList(): Promise<PublicCampaignListItem[]> {
+  const prisma = getPrisma();
+  return prisma.campaign.findMany({
+    where: {
+      workspace: "VIB",
+      status: "ACTIVE",
+    },
+    orderBy: { createdAt: "asc" },
+    select: {
+      code: true,
+      name: true,
+      description: true,
+    },
+  });
+}
+
+export function getCachedPublicCampaignList() {
+  return unstable_cache(
+    () => getPublicCampaignList(),
+    ["public-campaign-list"],
+    { revalidate: false, tags: [PUBLIC_CAMPAIGN_LIST_TAG] },
+  )();
+}
 
 export async function getPublicCampaignMeta(code: string) {
   const prisma = getPrisma();
@@ -151,7 +182,7 @@ export async function getPublicCampaignData(code: string): Promise<PublicCampaig
       transactionDate: transaction.transactionDate.toISOString(),
       createdAt: transaction.createdAt.toISOString(),
       statementRow: transaction.statementRow,
-      description: redactPhoneNumbers(transaction.description),
+      description: transaction.description,
       debitAmount: decimalToNumber(transaction.debitAmount),
       creditAmount: decimalToNumber(transaction.creditAmount),
     })),
@@ -186,6 +217,7 @@ export function invalidatePublicCampaignCache(codes: Iterable<string | null | un
   for (const code of normalizedCodes) {
     revalidateTag(publicCampaignTag(code), { expire: 0 });
   }
+  revalidateTag(PUBLIC_CAMPAIGN_LIST_TAG, { expire: 0 });
 
   return [...normalizedCodes];
 }

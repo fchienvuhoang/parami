@@ -23,14 +23,10 @@ type TransactionClient = Omit<
   "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
 >;
 
-export async function importBankStatement(workspace: BankWorkspace, fileBuffer: Buffer, fileName: string) {
+export async function importVibStatement(fileBuffer: Buffer, fileName: string) {
   const prisma = getPrisma();
-  const parsed = workspace === "VIB"
-    ? await parseVibStatement(fileBuffer)
-    : await (async () => {
-        const { parseBidvPdfStatement } = await import("@/lib/bidv-pdf");
-        return parseBidvPdfStatement(fileBuffer, process.env.BIDV_PDF_PASSWORD || "20021991");
-      })();
+  const workspace: BankWorkspace = "VIB";
+  const parsed = await parseVibStatement(fileBuffer);
   const rules = await loadKeywordRules(prisma, workspace);
   const openingBalance = await prisma.openingBalance.findUnique({
     where: { workspace },
@@ -60,7 +56,6 @@ export async function importBankStatement(workspace: BankWorkspace, fileBuffer: 
       update: {
         workspace,
         bankName: parsed.meta.sourceBank,
-        accountName: "accountName" in parsed.meta ? parsed.meta.accountName : undefined,
         currency: parsed.meta.currency,
         currentBalance: toPrismaDecimal(parsed.meta.closingBalance ?? 0),
         balanceAsOf: parsed.meta.toDate,
@@ -69,7 +64,6 @@ export async function importBankStatement(workspace: BankWorkspace, fileBuffer: 
         workspace,
         bankName: parsed.meta.sourceBank,
         accountNumber,
-        accountName: "accountName" in parsed.meta ? parsed.meta.accountName : null,
         currency: parsed.meta.currency,
         currentBalance: toPrismaDecimal(parsed.meta.closingBalance ?? 0),
         balanceAsOf: parsed.meta.toDate,
@@ -84,9 +78,7 @@ export async function importBankStatement(workspace: BankWorkspace, fileBuffer: 
         accountId: account.id,
         fromDate: parsed.meta.fromDate,
         toDate: parsed.meta.toDate,
-        openingBalance: "openingBalance" in parsed.meta && parsed.meta.openingBalance != null
-          ? toPrismaDecimal(parsed.meta.openingBalance)
-          : null,
+        openingBalance: null,
         closingBalance:
           parsed.meta.closingBalance == null ? null : toPrismaDecimal(parsed.meta.closingBalance),
         totalRows: parsed.rows.length,
@@ -164,8 +156,9 @@ export async function importBankStatement(workspace: BankWorkspace, fileBuffer: 
   });
 }
 
-export async function reclassifyImportedTransactions(workspace: BankWorkspace) {
+export async function reclassifyImportedTransactions() {
   const prisma = getPrisma();
+  const workspace: BankWorkspace = "VIB";
   const rules = await loadKeywordRules(prisma, workspace);
   const transactions = await prisma.bankTransaction.findMany({
     where: {

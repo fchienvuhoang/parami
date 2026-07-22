@@ -26,7 +26,7 @@ export default async function LoginPage({ searchParams }: Props) {
           <div>
             <h1 className="text-xl font-semibold">Đăng nhập quản trị</h1>
             <p className="mt-1 text-sm leading-6 text-zinc-600">
-              Đăng nhập tài khoản VIB hoặc BIDV để quản lý sao kê và thiện pháp riêng.
+              Nhập mật khẩu để quản lý sao kê VIB và các thiện pháp.
             </p>
           </div>
         </div>
