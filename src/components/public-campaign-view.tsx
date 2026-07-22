@@ -101,29 +101,47 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
           </div>
 
           {data.monthlyExpenses.length > 0 ? (
-            <div className="mt-4 overflow-hidden rounded-md border border-zinc-200">
-              <table className="w-full text-sm">
-                <thead className="bg-zinc-50 text-xs uppercase text-zinc-500">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Tháng</th>
-                    <th className="px-3 py-2 text-right">Số khoản chi</th>
-                    <th className="px-3 py-2 text-right">Tổng chi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-100 bg-white">
-                  {data.monthlyExpenses.map((summary) => (
-                    <tr key={summary.month}>
-                      <td className="px-3 py-2 font-medium text-zinc-900">{monthLabel(summary.month)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums text-zinc-600">
-                        {summary.transactionCount.toLocaleString("vi-VN")}
-                      </td>
-                      <td className="px-3 py-2 text-right font-semibold tabular-nums text-red-700">
-                        {money(summary.amount)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="mt-4 space-y-2">
+              {data.monthlyExpenses.map((summary, index) => (
+                <details key={summary.month} open={index === 0} className="group overflow-hidden rounded-md border border-zinc-200">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 bg-zinc-50 px-3 py-3 marker:hidden">
+                    <div>
+                      <div className="font-semibold text-zinc-900">{monthLabel(summary.month)}</div>
+                      <div className="mt-0.5 text-xs text-zinc-500">
+                        {summary.transactionCount.toLocaleString("vi-VN")} khoản chi · Bấm để xem chi tiết
+                      </div>
+                    </div>
+                    <div className="whitespace-nowrap text-right font-semibold tabular-nums text-red-700">
+                      {money(summary.amount)}
+                    </div>
+                  </summary>
+
+                  <div className="overflow-x-auto border-t border-zinc-200">
+                    <table className="w-full min-w-[620px] text-sm">
+                      <thead className="bg-white text-xs uppercase text-zinc-500">
+                        <tr>
+                          <th className="px-3 py-2 text-left">Ngày</th>
+                          <th className="px-3 py-2 text-left">Giao dịch</th>
+                          <th className="px-3 py-2 text-right">Số tiền</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-100 bg-white">
+                        {summary.transactions.map((transaction) => (
+                          <tr key={transaction.id}>
+                            <td className="whitespace-nowrap px-3 py-2 align-top tabular-nums text-zinc-600">
+                              {transactionDateTime(transaction.transactionDate)}
+                            </td>
+                            <td className="px-3 py-2 align-top text-zinc-800">{transaction.description}</td>
+                            <td className="whitespace-nowrap px-3 py-2 text-right align-top font-semibold tabular-nums text-red-700">
+                              {money(transaction.amount)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              ))}
             </div>
           ) : (
             <div className="mt-4 rounded-md border border-dashed border-zinc-200 px-3 py-8 text-center text-sm text-zinc-500">

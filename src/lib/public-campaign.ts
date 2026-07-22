@@ -20,6 +20,14 @@ export type PublicCampaignMonthlyExpense = {
   month: string;
   transactionCount: number;
   amount: number;
+  transactions: PublicCampaignExpenseTransaction[];
+};
+
+export type PublicCampaignExpenseTransaction = {
+  id: string;
+  transactionDate: string;
+  description: string;
+  amount: number;
 };
 
 export type PublicCampaignTransaction = {
@@ -142,9 +150,12 @@ export async function getPublicCampaignData(code: string): Promise<PublicCampaig
         debitAmount: { gt: 0 },
       },
       select: {
+        id: true,
         transactionDate: true,
+        description: true,
         debitAmount: true,
       },
+      orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }, { statementRow: "desc" }],
     }),
     prisma.openingBalanceAllocation.findUnique({
       where: { campaignId: campaign.id },
@@ -155,13 +166,24 @@ export async function getPublicCampaignData(code: string): Promise<PublicCampaig
   const income = decimalToNumber(transactionSums._sum.creditAmount);
   const expenses = decimalToNumber(transactionSums._sum.debitAmount);
   const openingBalance = decimalToNumber(openingAllocation?.amount);
-  const monthlyExpenseMap = new Map<string, { transactionCount: number; amount: number }>();
+  const monthlyExpenseMap = new Map<string, PublicCampaignMonthlyExpense>();
 
   for (const transaction of expenseTransactions) {
     const month = transactionMonth(transaction.transactionDate);
-    const current = monthlyExpenseMap.get(month) ?? { transactionCount: 0, amount: 0 };
+    const current = monthlyExpenseMap.get(month) ?? {
+      month,
+      transactionCount: 0,
+      amount: 0,
+      transactions: [],
+    };
     current.transactionCount += 1;
     current.amount += decimalToNumber(transaction.debitAmount);
+    current.transactions.push({
+      id: transaction.id,
+      transactionDate: transaction.transactionDate.toISOString(),
+      description: transaction.description,
+      amount: decimalToNumber(transaction.debitAmount),
+    });
     monthlyExpenseMap.set(month, current);
   }
 
@@ -174,9 +196,7 @@ export async function getPublicCampaignData(code: string): Promise<PublicCampaig
     expenses,
     balance: openingBalance + income - expenses,
     transactionCount: transactionSums._count,
-    monthlyExpenses: [...monthlyExpenseMap.entries()]
-      .sort(([left], [right]) => right.localeCompare(left))
-      .map(([month, summary]) => ({ month, ...summary })),
+    monthlyExpenses: [...monthlyExpenseMap.values()].sort((left, right) => right.month.localeCompare(left.month)),
     transactions: transactions.map((transaction) => ({
       id: transaction.id,
       transactionDate: transaction.transactionDate.toISOString(),
@@ -204,7 +224,7 @@ export function getCachedPublicCampaignData(code: string) {
   const normalizedCode = makeCampaignCode(code);
   return unstable_cache(
     () => getPublicCampaignData(normalizedCode),
-    ["public-campaign-data-v2", normalizedCode],
+    ["public-campaign-data-v3", normalizedCode],
     { revalidate: false, tags: [publicCampaignTag(normalizedCode)] },
   )();
 }
