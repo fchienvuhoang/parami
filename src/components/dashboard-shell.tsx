@@ -586,7 +586,7 @@ function TransactionTable({
           <thead className="sticky top-0 bg-zinc-50 text-xs uppercase text-zinc-500">
             <tr>
               <th className="px-3 py-2">Ngày</th>
-              <th className="px-3 py-2">Nội dung chuyển khoản</th>
+              <th className="min-w-[36rem] px-3 py-2">Nội dung chuyển khoản</th>
               <th className="px-3 py-2">Chi tiết</th>
               <th className="px-3 py-2 text-right">Có</th>
               <th className="px-3 py-2 text-right">Nợ</th>
@@ -601,7 +601,7 @@ function TransactionTable({
                 className={transaction.campaign ? "hover:bg-zinc-50" : "bg-rose-50/50 hover:bg-rose-50"}
               >
                 <td className="whitespace-nowrap px-3 py-2 tabular-nums text-zinc-600">{transactionDateTime(transaction.transactionDate)}</td>
-                <td className="max-w-md px-3 py-2 align-top">
+                <td className="min-w-[36rem] px-3 py-2 align-top">
                   <div className="whitespace-pre-wrap break-words font-medium text-zinc-900">
                     {transaction.description}
                   </div>
@@ -791,7 +791,7 @@ function DebitTransactionTable({
           <thead className="sticky top-0 bg-zinc-50 text-xs uppercase text-zinc-500">
             <tr>
               <th className="px-3 py-2">Ngày</th>
-              <th className="px-3 py-2">Nội dung chuyển khoản</th>
+              <th className="min-w-[36rem] px-3 py-2">Nội dung chuyển khoản</th>
               <th className="px-3 py-2">Chi tiết</th>
               <th className="px-3 py-2 text-right">Nợ</th>
               <th className="px-3 py-2">Thiện pháp</th>
@@ -807,7 +807,7 @@ function DebitTransactionTable({
                 <td className="whitespace-nowrap px-3 py-2 align-top text-zinc-600">
                   {dateOnly(transaction.transactionDate)}
                 </td>
-                <td className="max-w-md px-3 py-2 align-top">
+                <td className="min-w-[36rem] px-3 py-2 align-top">
                   <div className="whitespace-pre-wrap break-words font-medium text-zinc-900">
                     {transaction.description}
                   </div>
