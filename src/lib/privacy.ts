@@ -7,6 +7,8 @@ export function redactPhoneNumbers(value: string) {
       (digits.startsWith("0") && digits.length === 10) ||
       (digits.startsWith("84") && digits.length === 11);
 
-    return isVietnamPhone ? `${prefix}[ẩn số điện thoại]` : match;
+    return isVietnamPhone
+      ? `${prefix}${"*".repeat(digits.length - 3)}${digits.slice(-3)}`
+      : match;
   });
 }

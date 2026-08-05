@@ -4,6 +4,7 @@ import { HeartHandshake, Search, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import type { PublicCampaignData, PublicCampaignTransaction } from "@/lib/public-campaign";
+import { redactPhoneNumbers } from "@/lib/privacy";
 import { normalizeTransferText } from "@/lib/text";
 
 const statusLabels = {
@@ -131,7 +132,9 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
                             <td className="whitespace-nowrap px-3 py-2 align-top tabular-nums text-zinc-600">
                               {transactionDateTime(transaction.transactionDate)}
                             </td>
-                            <td className="px-3 py-2 align-top text-zinc-800">{transaction.description}</td>
+                            <td className="px-3 py-2 align-top text-zinc-800">
+                              {redactPhoneNumbers(transaction.description)}
+                            </td>
                             <td className="whitespace-nowrap px-3 py-2 text-right align-top font-semibold tabular-nums text-red-700">
                               {money(transaction.amount)}
                             </td>
@@ -225,7 +228,7 @@ function PublicTransactionCard({ transaction }: { transaction: PublicCampaignTra
         </div>
       </div>
       <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-zinc-800">
-        {transaction.description}
+        {redactPhoneNumbers(transaction.description)}
       </p>
     </article>
   );
@@ -238,7 +241,9 @@ function PublicTransactionRow({ transaction }: { transaction: PublicCampaignTran
     <tr className="hover:bg-zinc-50">
       <td className="whitespace-nowrap px-3 py-2 align-top tabular-nums text-zinc-600">{transactionDateTime(transaction.transactionDate)}</td>
       <td className="min-w-[360px] px-3 py-2 align-top">
-        <div className="whitespace-pre-wrap break-words font-medium text-zinc-900">{transaction.description}</div>
+        <div className="whitespace-pre-wrap break-words font-medium text-zinc-900">
+          {redactPhoneNumbers(transaction.description)}
+        </div>
       </td>
       <td className="whitespace-nowrap px-3 py-2 align-top">
         <span className={`inline-flex rounded-md border px-2 py-1 text-xs font-medium ${meta.className}`}>
