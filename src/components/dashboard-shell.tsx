@@ -4,6 +4,8 @@ import {
   AlertCircle,
   ArrowUpFromLine,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   ExternalLink,
   FileSpreadsheet,
@@ -21,7 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import type React from "react";
 import type {
   CampaignSummary,
@@ -29,7 +31,7 @@ import type {
   DashboardState,
   TransactionSummary,
 } from "@/lib/dashboard";
-import { normalizeTransferText, splitKeywords } from "@/lib/text";
+import { splitKeywords } from "@/lib/text";
 
 type Props = {
   state: DashboardState;
@@ -43,6 +45,14 @@ type ImportResponse = {
   unmatchedRows: number;
   accountNumber: string | null;
   closingBalance: number | null;
+};
+
+type TransactionListResponse = {
+  transactions: TransactionSummary[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 };
 
 type CampaignModalState =
@@ -90,29 +100,52 @@ function Dashboard({ data }: { data: DashboardData }) {
   const [campaignModal, setCampaignModal] = useState<CampaignModalState | null>(null);
   const [showSystemSettings, setShowSystemSettings] = useState(false);
   const [isSavingOpeningBalance, setIsSavingOpeningBalance] = useState(false);
+  const [transactionRows, setTransactionRows] = useState(() => data.transactions.slice(0, 50));
+  const [transactionTotal, setTransactionTotal] = useState(data.overview.transactionCount);
+  const [transactionPage, setTransactionPage] = useState(1);
+  const [transactionTotalPages, setTransactionTotalPages] = useState(
+    Math.max(1, Math.ceil(data.overview.transactionCount / 50)),
+  );
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
+  const [transactionError, setTransactionError] = useState<string | null>(null);
+  const [transactionReloadKey, setTransactionReloadKey] = useState(0);
 
-  const filteredTransactions = useMemo(() => {
-    const normalizedQuery = normalizeTransferText(query);
+  useEffect(() => {
+    if (mainTab !== "transactions") return;
 
-    return data.transactions.filter((transaction) => {
-      const matchesTab =
-        activeTab === "all" ||
-        (activeTab === "unmatched" && !transaction.campaign) ||
-        transaction.campaign?.id === activeTab;
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setIsLoadingTransactions(true);
+      setTransactionError(null);
 
-      if (!matchesTab) {
-        return false;
+      const params = new URLSearchParams({
+        page: String(transactionPage),
+        pageSize: "50",
+        campaignId: activeTab,
+      });
+      if (query.trim()) params.set("query", query.trim());
+
+      try {
+        const response = await fetch(`/api/transactions?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        const result = await readJson<TransactionListResponse>(response);
+        setTransactionRows(result.transactions);
+        setTransactionTotal(result.total);
+        setTransactionTotalPages(result.totalPages);
+        if (result.page !== transactionPage) setTransactionPage(result.page);
+      } catch (caught) {
+        if (!controller.signal.aborted) setTransactionError(getErrorMessage(caught));
+      } finally {
+        if (!controller.signal.aborted) setIsLoadingTransactions(false);
       }
+    }, query.trim() ? 250 : 0);
 
-      if (!normalizedQuery) {
-        return true;
-      }
-
-      return normalizeTransferText(
-        `${transaction.description} ${transaction.transactionCode} ${transaction.campaign?.name ?? ""}`,
-      ).includes(normalizedQuery);
-    }).sort(compareTransactionNewestFirst);
-  }, [activeTab, data.transactions, query]);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [activeTab, mainTab, query, transactionPage, transactionReloadKey]);
 
   async function handleImport(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -132,6 +165,7 @@ function Dashboard({ data }: { data: DashboardData }) {
       setImportResult(json);
       setMessage(`Đã import ${json.insertedRows}/${json.totalRows} giao dịch mới.`);
       form.reset();
+      setTransactionReloadKey((value) => value + 1);
       router.refresh();
     } catch (caught) {
       setError(getErrorMessage(caught));
@@ -238,6 +272,7 @@ function Dashboard({ data }: { data: DashboardData }) {
       setMessage(
         `Đã phân loại lại ${result.totalRows} giao dịch: ${result.matchedRows} khớp, ${result.unmatchedRows} chưa khớp.`,
       );
+      setTransactionReloadKey((value) => value + 1);
       router.refresh();
     } catch (caught) {
       setError(getErrorMessage(caught));
@@ -259,6 +294,7 @@ function Dashboard({ data }: { data: DashboardData }) {
           body: JSON.stringify({ campaignId }),
         }),
       );
+      setTransactionReloadKey((value) => value + 1);
       router.refresh();
     } catch (caught) {
       setError(getErrorMessage(caught));
@@ -491,7 +527,10 @@ function Dashboard({ data }: { data: DashboardData }) {
                   <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
                   <input
                     value={query}
-                    onChange={(event) => setQuery(event.target.value)}
+                    onChange={(event) => {
+                      setQuery(event.target.value);
+                      setTransactionPage(1);
+                    }}
                     placeholder="Tìm nội dung, mã giao dịch..."
                     className="w-full rounded-md border border-zinc-300 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
                   />
@@ -502,14 +541,20 @@ function Dashboard({ data }: { data: DashboardData }) {
                 <TabButton
                   active={activeTab === "all"}
                   count={data.overview.transactionCount}
-                  onClick={() => setActiveTab("all")}
+                  onClick={() => {
+                    setActiveTab("all");
+                    setTransactionPage(1);
+                  }}
                 >
                   Tất cả
                 </TabButton>
                 <TabButton
                   active={activeTab === "unmatched"}
                   count={data.overview.unmatchedCount}
-                  onClick={() => setActiveTab("unmatched")}
+                  onClick={() => {
+                    setActiveTab("unmatched");
+                    setTransactionPage(1);
+                  }}
                 >
                   Chưa phân loại
                 </TabButton>
@@ -518,19 +563,61 @@ function Dashboard({ data }: { data: DashboardData }) {
                     key={campaign.id}
                     active={activeTab === campaign.id}
                     count={campaign.transactionCount}
-                    onClick={() => setActiveTab(campaign.id)}
+                    onClick={() => {
+                      setActiveTab(campaign.id);
+                      setTransactionPage(1);
+                    }}
                   >
                     {campaign.code}
                   </TabButton>
                 ))}
               </div>
 
-              <TransactionTable
-                transactions={filteredTransactions}
-                campaigns={data.campaigns}
-                pendingTransactionId={pendingTransactionId}
-                onAssign={assignTransaction}
-              />
+              {transactionError ? (
+                <div className="mt-4 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                  {transactionError}
+                </div>
+              ) : null}
+
+              <div className={isLoadingTransactions ? "opacity-60" : undefined}>
+                <TransactionTable
+                  transactions={transactionRows}
+                  campaigns={data.campaigns}
+                  pendingTransactionId={pendingTransactionId}
+                  onAssign={assignTransaction}
+                />
+              </div>
+
+              <div className="mt-3 flex flex-col gap-2 text-sm text-zinc-600 sm:flex-row sm:items-center sm:justify-between">
+                <span>
+                  {isLoadingTransactions
+                    ? "Đang tải giao dịch..."
+                    : `${transactionTotal.toLocaleString("vi-VN")} giao dịch phù hợp`}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={transactionPage <= 1 || isLoadingTransactions}
+                    onClick={() => setTransactionPage((page) => Math.max(1, page - 1))}
+                    className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-3 py-1.5 font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Trước
+                  </button>
+                  <span className="min-w-24 text-center tabular-nums">
+                    Trang {transactionPage.toLocaleString("vi-VN")}/{transactionTotalPages.toLocaleString("vi-VN")}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={transactionPage >= transactionTotalPages || isLoadingTransactions}
+                    onClick={() => setTransactionPage((page) => Math.min(transactionTotalPages, page + 1))}
+                    className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-3 py-1.5 font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Sau
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
             </Panel>
           )}
         </section>
@@ -858,20 +945,6 @@ function DebitTransactionTable({
       </div>
     </div>
   );
-}
-
-function compareTransactionNewestFirst(left: TransactionSummary, right: TransactionSummary) {
-  const dateDifference = new Date(right.transactionDate).getTime() - new Date(left.transactionDate).getTime();
-  if (dateDifference !== 0) {
-    return dateDifference;
-  }
-
-  const createdAtDifference = new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
-  if (createdAtDifference !== 0) {
-    return createdAtDifference;
-  }
-
-  return (right.statementRow ?? 0) - (left.statementRow ?? 0);
 }
 
 function FundSummaryTable({ data }: { data: DashboardData }) {

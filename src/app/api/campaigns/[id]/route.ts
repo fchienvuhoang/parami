@@ -51,6 +51,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
               data: keywords.map((keyword) => ({
                 keyword,
                 normalizedKeyword: normalizeTransferText(keyword),
+                active: body.status !== "COMPLETED",
               })),
               skipDuplicates: true,
             },

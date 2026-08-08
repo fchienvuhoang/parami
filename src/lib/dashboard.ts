@@ -188,7 +188,7 @@ export async function getDashboardState(workspace: BankWorkspace): Promise<Dashb
           },
         },
         orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }, { statementRow: "desc" }],
-        take: 500,
+        take: 50,
       }),
       prisma.bankTransaction.findMany({
         where: {
