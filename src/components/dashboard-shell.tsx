@@ -806,8 +806,21 @@ function CampaignTable({
                 <td className="max-w-xs px-3 py-2">
                   <div className="flex flex-wrap gap-1">
                     {campaign.keywords.slice(0, 4).map((keyword) => (
-                      <span key={keyword.id} className="rounded-md bg-zinc-100 px-2 py-1 text-xs text-zinc-600">
-                        {keyword.keyword}
+                      <span
+                        key={keyword.id}
+                        title={keyword.active ? "Từ khóa đang hoạt động" : "Đã tắt vì thiện pháp đã hoàn tất"}
+                        className={
+                          keyword.active
+                            ? "rounded-md bg-zinc-100 px-2 py-1 text-xs text-zinc-600"
+                            : "inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-400"
+                        }
+                      >
+                        <span className={keyword.active ? undefined : "line-through"}>{keyword.keyword}</span>
+                        {!keyword.active ? (
+                          <span className="rounded bg-zinc-200 px-1 py-0.5 text-[10px] font-semibold uppercase leading-none text-zinc-600 no-underline">
+                            Đã tắt
+                          </span>
+                        ) : null}
                       </span>
                     ))}
                     {campaign.keywords.length > 4 ? (
