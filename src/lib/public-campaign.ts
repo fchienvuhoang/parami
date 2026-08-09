@@ -47,6 +47,7 @@ export type PublicCampaignListItem = {
 };
 
 const PUBLIC_CAMPAIGN_LIST_TAG = "public-campaign-list";
+const MONTHLY_EXPENSE_CAMPAIGN_CODES = new Set(["quy-hang-thang", "quy-nhom-1"]);
 
 export async function getPublicCampaignList(): Promise<PublicCampaignListItem[]> {
   const prisma = getPrisma();
@@ -117,6 +118,8 @@ export async function getPublicCampaignData(code: string): Promise<PublicCampaig
     return null;
   }
 
+  const hasMonthlyExpenseStatistics = MONTHLY_EXPENSE_CAMPAIGN_CODES.has(campaign.code);
+
   const [transactionSums, transactions, expenseTransactions, openingAllocation] = await Promise.all([
     prisma.bankTransaction.aggregate({
       where: {
@@ -144,19 +147,21 @@ export async function getPublicCampaignData(code: string): Promise<PublicCampaig
       orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }, { statementRow: "desc" }],
       take: 1000,
     }),
-    prisma.bankTransaction.findMany({
-      where: {
-        campaignId: campaign.id,
-        debitAmount: { gt: 0 },
-      },
-      select: {
-        id: true,
-        transactionDate: true,
-        description: true,
-        debitAmount: true,
-      },
-      orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }, { statementRow: "desc" }],
-    }),
+    hasMonthlyExpenseStatistics
+      ? prisma.bankTransaction.findMany({
+          where: {
+            campaignId: campaign.id,
+            debitAmount: { gt: 0 },
+          },
+          select: {
+            id: true,
+            transactionDate: true,
+            description: true,
+            debitAmount: true,
+          },
+          orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }, { statementRow: "desc" }],
+        })
+      : Promise.resolve([]),
     prisma.openingBalanceAllocation.findUnique({
       where: { campaignId: campaign.id },
       select: { amount: true },
@@ -185,6 +190,18 @@ export async function getPublicCampaignData(code: string): Promise<PublicCampaig
       amount: decimalToNumber(transaction.debitAmount),
     });
     monthlyExpenseMap.set(month, current);
+  }
+
+  if (hasMonthlyExpenseStatistics) {
+    const currentMonth = transactionMonth(new Date());
+    if (!monthlyExpenseMap.has(currentMonth)) {
+      monthlyExpenseMap.set(currentMonth, {
+        month: currentMonth,
+        transactionCount: 0,
+        amount: 0,
+        transactions: [],
+      });
+    }
   }
 
   return {
@@ -224,7 +241,7 @@ export function getCachedPublicCampaignData(code: string) {
   const normalizedCode = makeCampaignCode(code);
   return unstable_cache(
     () => getPublicCampaignData(normalizedCode),
-    ["public-campaign-data-v3", normalizedCode],
+    ["public-campaign-data-v4", normalizedCode],
     { revalidate: false, tags: [publicCampaignTag(normalizedCode)] },
   )();
 }

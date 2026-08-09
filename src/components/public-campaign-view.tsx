@@ -7,6 +7,8 @@ import type { PublicCampaignData, PublicCampaignTransaction } from "@/lib/public
 import { redactPhoneNumbers } from "@/lib/privacy";
 import { normalizeTransferText } from "@/lib/text";
 
+const MONTHLY_EXPENSE_CAMPAIGN_CODES = new Set(["quy-hang-thang", "quy-nhom-1"]);
+
 const statusLabels = {
   ACTIVE: "Đang chạy",
   PAUSED: "Tạm dừng",
@@ -22,6 +24,7 @@ const statusClassNames = {
 export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
   const [query, setQuery] = useState("");
   const normalizedQuery = normalizeTransferText(query);
+  const showMonthlyExpenses = MONTHLY_EXPENSE_CAMPAIGN_CODES.has(data.code);
 
   const filteredTransactions = useMemo(() => {
     if (!normalizedQuery) {
@@ -95,16 +98,17 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
       </header>
 
       <main className="mx-auto max-w-5xl space-y-4 px-4 py-4 sm:px-6">
-        <section className="rounded-md border border-zinc-200 bg-white p-3 shadow-sm sm:p-4">
-          <div>
-            <h2 className="text-sm font-semibold text-zinc-950">Thống kê khoản chi theo tháng</h2>
-            <p className="mt-1 text-xs text-zinc-500">Tổng các giao dịch cúng dường trong từng tháng</p>
-          </div>
+        {showMonthlyExpenses ? (
+          <section className="rounded-md border border-zinc-200 bg-white p-3 shadow-sm sm:p-4">
+            <div>
+              <h2 className="text-sm font-semibold text-zinc-950">Thống kê khoản chi theo tháng</h2>
+              <p className="mt-1 text-xs text-zinc-500">Tổng các giao dịch cúng dường trong từng tháng</p>
+            </div>
 
-          {data.monthlyExpenses.length > 0 ? (
-            <div className="mt-4 space-y-2">
-              {data.monthlyExpenses.map((summary, index) => (
-                <details key={summary.month} open={index === 0} className="group overflow-hidden rounded-md border border-zinc-200">
+            {data.monthlyExpenses.length > 0 ? (
+              <div className="mt-4 space-y-2">
+                {data.monthlyExpenses.map((summary) => (
+                  <details key={summary.month} className="group overflow-hidden rounded-md border border-zinc-200">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-4 bg-zinc-50 px-3 py-3 marker:hidden">
                     <div>
                       <div className="font-semibold text-zinc-900">{monthLabel(summary.month)}</div>
@@ -117,8 +121,9 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
                     </div>
                   </summary>
 
-                  <div className="overflow-x-auto border-t border-zinc-200">
-                    <table className="w-full min-w-[620px] text-sm">
+                  {summary.transactions.length > 0 ? (
+                    <div className="overflow-x-auto border-t border-zinc-200">
+                      <table className="w-full min-w-[620px] text-sm">
                       <thead className="bg-white text-xs uppercase text-zinc-500">
                         <tr>
                           <th className="px-3 py-2 text-left">Ngày</th>
@@ -141,17 +146,23 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
                           </tr>
                         ))}
                       </tbody>
-                    </table>
-                  </div>
-                </details>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-4 rounded-md border border-dashed border-zinc-200 px-3 py-8 text-center text-sm text-zinc-500">
-              Chưa có khoản chi.
-            </div>
-          )}
-        </section>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="border-t border-zinc-200 px-3 py-5 text-center text-sm text-zinc-500">
+                      Tháng này chưa có khoản chi.
+                    </div>
+                  )}
+                  </details>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-4 rounded-md border border-dashed border-zinc-200 px-3 py-8 text-center text-sm text-zinc-500">
+                Chưa có khoản chi.
+              </div>
+            )}
+          </section>
+        ) : null}
 
         <section className="rounded-md border border-zinc-200 bg-white p-3 shadow-sm sm:p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
