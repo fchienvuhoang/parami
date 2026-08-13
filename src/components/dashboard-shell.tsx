@@ -11,6 +11,7 @@ import {
   FileSpreadsheet,
   LogOut,
   Loader2,
+  Mail,
   Plus,
   RefreshCw,
   Search,
@@ -45,6 +46,8 @@ type ImportResponse = {
   unmatchedRows: number;
   accountNumber: string | null;
   closingBalance: number | null;
+  alreadyImported?: boolean;
+  emailReceivedAt?: string | null;
 };
 
 type TransactionListResponse = {
@@ -93,6 +96,7 @@ function Dashboard({ data }: { data: DashboardData }) {
   const [error, setError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<ImportResponse | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [isImportingEmail, setIsImportingEmail] = useState(false);
   const [isSavingCampaign, setIsSavingCampaign] = useState(false);
   const [isReclassifying, setIsReclassifying] = useState(false);
   const [deletingCampaignId, setDeletingCampaignId] = useState<string | null>(null);
@@ -171,6 +175,31 @@ function Dashboard({ data }: { data: DashboardData }) {
       setError(getErrorMessage(caught));
     } finally {
       setIsImporting(false);
+    }
+  }
+
+  async function handleEmailImport() {
+    setError(null);
+    setMessage(null);
+    setImportResult(null);
+    setIsImportingEmail(true);
+
+    try {
+      const json = await readJson<ImportResponse>(
+        await fetch("/api/import/email", { method: "POST" }),
+      );
+      setImportResult(json);
+      setMessage(
+        json.alreadyImported
+          ? "Email sao kê mới nhất đã được import trước đó, hệ thống không import lại."
+          : `Đã đọc Gmail và import ${json.insertedRows}/${json.totalRows} giao dịch mới.`,
+      );
+      setTransactionReloadKey((value) => value + 1);
+      router.refresh();
+    } catch (caught) {
+      setError(getErrorMessage(caught));
+    } finally {
+      setIsImportingEmail(false);
     }
   }
 
@@ -440,6 +469,26 @@ function Dashboard({ data }: { data: DashboardData }) {
             </div>
 
             <div className="flex flex-col gap-3 xl:w-80">
+              <div className="rounded-md border border-indigo-200 bg-indigo-50 p-3">
+                <div className="flex items-start gap-2">
+                  <Mail className="mt-0.5 h-5 w-5 shrink-0 text-indigo-700" />
+                  <div>
+                    <p className="text-sm font-semibold text-indigo-950">Lấy sao kê mới nhất từ Gmail</p>
+                    <p className="mt-1 text-xs leading-5 text-indigo-700">
+                      Tìm email “Sao kê tài khoản”, tải file Excel và tự động import.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleEmailImport}
+                  disabled={isImportingEmail || isImporting}
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md bg-indigo-700 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isImportingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                  {isImportingEmail ? "Đang đọc Gmail..." : "Đọc Gmail và import"}
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={() => setCampaignModal({ mode: "create" })}
