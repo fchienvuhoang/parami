@@ -92,6 +92,11 @@ export type TransactionSummary = {
     code: string;
     name: string;
   } | null;
+  allocations: {
+    campaignId: string;
+    amount: number;
+    campaign: { id: string; code: string; name: string };
+  }[];
 };
 
 export async function getDashboardState(workspace: BankWorkspace): Promise<DashboardState> {
@@ -110,6 +115,7 @@ export async function getDashboardState(workspace: BankWorkspace): Promise<Dashb
       bankAccount,
       latestImport,
       openingBalance,
+      transactionAllocations,
     ] = await Promise.all([
       prisma.campaign.findMany({
         where: { workspace },
@@ -148,6 +154,7 @@ export async function getDashboardState(workspace: BankWorkspace): Promise<Dashb
         where: {
           workspace,
           campaignId: null,
+          allocations: { none: {} },
           creditAmount: {
             gt: 0,
           },
@@ -161,6 +168,7 @@ export async function getDashboardState(workspace: BankWorkspace): Promise<Dashb
         where: {
           workspace,
           campaignId: null,
+          allocations: { none: {} },
           debitAmount: {
             gt: 0,
           },
@@ -174,6 +182,7 @@ export async function getDashboardState(workspace: BankWorkspace): Promise<Dashb
         where: {
           workspace,
           campaignId: null,
+          allocations: { none: {} },
         },
       }),
       prisma.bankTransaction.findMany({
@@ -185,6 +194,10 @@ export async function getDashboardState(workspace: BankWorkspace): Promise<Dashb
               code: true,
               name: true,
             },
+          },
+          allocations: {
+            include: { campaign: { select: { id: true, code: true, name: true } } },
+            orderBy: { createdAt: "asc" },
           },
         },
         orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }, { statementRow: "desc" }],
@@ -205,6 +218,10 @@ export async function getDashboardState(workspace: BankWorkspace): Promise<Dashb
               name: true,
             },
           },
+          allocations: {
+            include: { campaign: { select: { id: true, code: true, name: true } } },
+            orderBy: { createdAt: "asc" },
+          },
         },
         orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }, { statementRow: "desc" }],
         take: 500,
@@ -221,6 +238,15 @@ export async function getDashboardState(workspace: BankWorkspace): Promise<Dashb
         where: { workspace },
         include: { allocations: true },
       }),
+      prisma.transactionAllocation.findMany({
+        where: { transaction: { workspace } },
+        select: {
+          transactionId: true,
+          campaignId: true,
+          amount: true,
+          transaction: { select: { creditAmount: true, debitAmount: true } },
+        },
+      }),
     ]);
 
     const txByCampaign = new Map(
@@ -233,6 +259,19 @@ export async function getDashboardState(workspace: BankWorkspace): Promise<Dashb
         },
       ]),
     );
+
+    const allocatedTransactionIdsByCampaign = new Map<string, Set<string>>();
+    for (const allocation of transactionAllocations) {
+      const current = txByCampaign.get(allocation.campaignId) ?? { income: 0, debit: 0, count: 0 };
+      const amount = decimalToNumber(allocation.amount);
+      if (decimalToNumber(allocation.transaction.creditAmount) > 0) current.income += amount;
+      if (decimalToNumber(allocation.transaction.debitAmount) > 0) current.debit += amount;
+      txByCampaign.set(allocation.campaignId, current);
+
+      const ids = allocatedTransactionIdsByCampaign.get(allocation.campaignId) ?? new Set<string>();
+      ids.add(allocation.transactionId);
+      allocatedTransactionIdsByCampaign.set(allocation.campaignId, ids);
+    }
 
     const campaignSummaries = campaigns.map((campaign) => {
       const tx = txByCampaign.get(campaign.id);
@@ -254,7 +293,7 @@ export async function getDashboardState(workspace: BankWorkspace): Promise<Dashb
         expenses: expensesAmount,
         openingBalance: initialAmount,
         balance: initialAmount + income - expensesAmount,
-        transactionCount: campaign._count.transactions,
+        transactionCount: campaign._count.transactions + (allocatedTransactionIdsByCampaign.get(campaign.id)?.size ?? 0),
         keywords: campaign.keywords.map((keyword) => ({
           id: keyword.id,
           keyword: keyword.keyword,
@@ -309,6 +348,11 @@ export async function getDashboardState(workspace: BankWorkspace): Promise<Dashb
           matchedKeyword: transaction.matchedKeyword,
           classificationStatus: transaction.classificationStatus,
           campaign: transaction.campaign,
+          allocations: transaction.allocations.map((allocation) => ({
+            campaignId: allocation.campaignId,
+            amount: decimalToNumber(allocation.amount),
+            campaign: allocation.campaign,
+          })),
         })),
         debitTransactions: debitTransactions.map((transaction) => ({
           id: transaction.id,
@@ -324,6 +368,11 @@ export async function getDashboardState(workspace: BankWorkspace): Promise<Dashb
           matchedKeyword: transaction.matchedKeyword,
           classificationStatus: transaction.classificationStatus,
           campaign: transaction.campaign,
+          allocations: transaction.allocations.map((allocation) => ({
+            campaignId: allocation.campaignId,
+            amount: decimalToNumber(allocation.amount),
+            campaign: allocation.campaign,
+          })),
         })),
         latestImport: latestImport
           ? {

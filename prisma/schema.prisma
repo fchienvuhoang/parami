@@ -80,6 +80,7 @@ model Campaign {
   workspace                BankWorkspace             @default(VIB)
   keywords                 CampaignKeyword[]
   transactions             BankTransaction[]
+  transactionAllocations   TransactionAllocation[]
   expenses                 Expense[]
   openingBalanceAllocation OpeningBalanceAllocation?
 
@@ -144,12 +145,27 @@ model BankTransaction {
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
   workspace             BankWorkspace        @default(VIB)
+  allocations           TransactionAllocation[]
 
   @@index([transactionDate, statementRow, createdAt])
   @@index([campaignId, transactionDate])
   @@index([campaignId, transactionDate, createdAt, statementRow])
   @@index([classificationStatus])
   @@index([creditAmount])
+}
+
+model TransactionAllocation {
+  id            String          @id @default(cuid())
+  transactionId String
+  transaction   BankTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  campaignId    String
+  campaign      Campaign        @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  amount        Decimal         @db.Decimal(18, 2)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@unique([transactionId, campaignId])
+  @@index([campaignId, transactionId])
 }
 
 model Expense {

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { apiError } from "@/lib/api";
 import { getWorkspaceFromRequest } from "@/lib/auth";
 import { getPrisma } from "@/lib/prisma";
+import { decimalToNumber, toPrismaDecimal } from "@/lib/money";
 import {
   invalidatePublicCampaignCache,
   warmPublicCampaignCaches,
@@ -10,6 +11,10 @@ import {
 
 const updateTransactionSchema = z.object({
   campaignId: z.string().optional().nullable(),
+  allocations: z.array(z.object({
+    campaignId: z.string().min(1),
+    amount: z.number().positive(),
+  })).min(2).optional(),
 });
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -21,26 +26,65 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
     const previousTransaction = await prisma.bankTransaction.findFirst({
       where: { id, workspace },
-      select: { campaign: { select: { code: true } } },
+      select: {
+        creditAmount: true,
+        debitAmount: true,
+        campaign: { select: { code: true } },
+        allocations: { select: { campaign: { select: { code: true } } } },
+      },
     });
     if (!previousTransaction) return NextResponse.json({ error: "Không tìm thấy giao dịch." }, { status: 404 });
-    if (body.campaignId) {
-      const campaign = await prisma.campaign.findFirst({ where: { id: body.campaignId, workspace }, select: { id: true } });
-      if (!campaign) return NextResponse.json({ error: "Thiện pháp không thuộc tài khoản này." }, { status: 400 });
+    const requestedCampaignIds = body.allocations?.map((item) => item.campaignId) ?? (body.campaignId ? [body.campaignId] : []);
+    if (new Set(requestedCampaignIds).size !== requestedCampaignIds.length) {
+      return NextResponse.json({ error: "Mỗi thiện pháp chỉ được xuất hiện một lần." }, { status: 400 });
     }
-    const transaction = await prisma.bankTransaction.update({
-      where: { id },
-      data: {
-        campaignId: body.campaignId || null,
-        matchedKeyword: body.campaignId ? "Gán thủ công" : null,
-        classificationStatus: body.campaignId ? "MANUAL" : "UNMATCHED",
-      },
-      include: { campaign: { select: { code: true } } },
+    const campaignCount = await prisma.campaign.count({ where: { id: { in: requestedCampaignIds }, workspace } });
+    if (campaignCount !== requestedCampaignIds.length) {
+      return NextResponse.json({ error: "Có thiện pháp không thuộc tài khoản này." }, { status: 400 });
+    }
+
+    if (body.allocations) {
+      const transactionAmount = Math.max(
+        decimalToNumber(previousTransaction.creditAmount),
+        decimalToNumber(previousTransaction.debitAmount),
+      );
+      const allocatedAmount = body.allocations.reduce((sum, item) => sum + item.amount, 0);
+      if (Math.round(allocatedAmount * 100) !== Math.round(transactionAmount * 100)) {
+        return NextResponse.json({ error: "Tổng số tiền phân bổ phải bằng số tiền giao dịch." }, { status: 400 });
+      }
+    }
+
+    const transaction = await prisma.$transaction(async (tx) => {
+      await tx.transactionAllocation.deleteMany({ where: { transactionId: id } });
+      const updated = await tx.bankTransaction.update({
+        where: { id },
+        data: {
+          campaignId: body.allocations ? null : body.campaignId || null,
+          matchedKeyword: body.allocations ? "Chia thủ công" : body.campaignId ? "Gán thủ công" : null,
+          classificationStatus: body.allocations || body.campaignId ? "MANUAL" : "UNMATCHED",
+        },
+      });
+      if (body.allocations) {
+        await tx.transactionAllocation.createMany({
+          data: body.allocations.map((item) => ({
+            transactionId: id,
+            campaignId: item.campaignId,
+            amount: toPrismaDecimal(item.amount),
+          })),
+        });
+      }
+      return updated;
+    });
+
+    const affectedCampaigns = await prisma.campaign.findMany({
+      where: { id: { in: requestedCampaignIds } },
+      select: { code: true },
     });
 
     const affectedCodes = invalidatePublicCampaignCache([
       previousTransaction?.campaign?.code,
-      transaction.campaign?.code,
+      ...previousTransaction.allocations.map((item) => item.campaign.code),
+      ...affectedCampaigns.map((item) => item.code),
     ]);
     await warmPublicCampaignCaches(affectedCodes);
 

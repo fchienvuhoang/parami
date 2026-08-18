@@ -32,9 +32,9 @@ export async function GET(request: Request) {
     const where: Prisma.BankTransactionWhereInput = {
       workspace,
       ...(input.campaignId === "unmatched"
-        ? { campaignId: null }
+        ? { campaignId: null, allocations: { none: {} } }
         : input.campaignId !== "all"
-          ? { campaignId: input.campaignId }
+          ? { OR: [{ campaignId: input.campaignId }, { allocations: { some: { campaignId: input.campaignId } } }] }
           : {}),
       ...(normalizedQuery
         ? {
@@ -43,6 +43,8 @@ export async function GET(request: Request) {
               { transactionCode: { contains: input.query, mode: "insensitive" } },
               { campaign: { name: { contains: input.query, mode: "insensitive" } } },
               { campaign: { code: { contains: input.query, mode: "insensitive" } } },
+              { allocations: { some: { campaign: { name: { contains: input.query, mode: "insensitive" } } } } },
+              { allocations: { some: { campaign: { code: { contains: input.query, mode: "insensitive" } } } } },
             ],
           }
         : {}),
@@ -56,6 +58,10 @@ export async function GET(request: Request) {
       include: {
         campaign: {
           select: { id: true, code: true, name: true },
+        },
+        allocations: {
+          include: { campaign: { select: { id: true, code: true, name: true } } },
+          orderBy: { createdAt: "asc" },
         },
       },
       orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }, { statementRow: "desc" }],
@@ -78,6 +84,11 @@ export async function GET(request: Request) {
         matchedKeyword: transaction.matchedKeyword,
         classificationStatus: transaction.classificationStatus,
         campaign: transaction.campaign,
+        allocations: transaction.allocations.map((allocation) => ({
+          campaignId: allocation.campaignId,
+          amount: decimalToNumber(allocation.amount),
+          campaign: allocation.campaign,
+        })),
       })),
       total,
       page,

@@ -102,6 +102,7 @@ function Dashboard({ data }: { data: DashboardData }) {
   const [deletingCampaignId, setDeletingCampaignId] = useState<string | null>(null);
   const [pendingTransactionId, setPendingTransactionId] = useState<string | null>(null);
   const [campaignModal, setCampaignModal] = useState<CampaignModalState | null>(null);
+  const [splitTransaction, setSplitTransaction] = useState<TransactionSummary | null>(null);
   const [showSystemSettings, setShowSystemSettings] = useState(false);
   const [isSavingOpeningBalance, setIsSavingOpeningBalance] = useState(false);
   const [transactionRows, setTransactionRows] = useState(() => data.transactions.slice(0, 50));
@@ -323,6 +324,36 @@ function Dashboard({ data }: { data: DashboardData }) {
           body: JSON.stringify({ campaignId }),
         }),
       );
+      setTransactionReloadKey((value) => value + 1);
+      router.refresh();
+    } catch (caught) {
+      setError(getErrorMessage(caught));
+    } finally {
+      setPendingTransactionId(null);
+    }
+  }
+
+  async function splitTransactionAcrossCampaigns(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!splitTransaction) return;
+    setError(null);
+    setMessage(null);
+    setPendingTransactionId(splitTransaction.id);
+    try {
+      const formData = new FormData(event.currentTarget);
+      const allocations = data.campaigns
+        .map((campaign) => ({
+          campaignId: campaign.id,
+          amount: parseMoneyInput(formData.get(`allocation-${campaign.id}`)),
+        }))
+        .filter((item) => item.amount > 0);
+      await readJson(await fetch(`/api/transactions/${splitTransaction.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ allocations }),
+      }));
+      setMessage(`Đã chia giao dịch cho ${allocations.length} thiện pháp.`);
+      setSplitTransaction(null);
       setTransactionReloadKey((value) => value + 1);
       router.refresh();
     } catch (caught) {
@@ -565,6 +596,7 @@ function Dashboard({ data }: { data: DashboardData }) {
                   campaigns={data.campaigns}
                   pendingTransactionId={pendingTransactionId}
                   onAssign={assignTransaction}
+                  onSplit={setSplitTransaction}
                 />
               </Panel>
             </>
@@ -634,6 +666,7 @@ function Dashboard({ data }: { data: DashboardData }) {
                   campaigns={data.campaigns}
                   pendingTransactionId={pendingTransactionId}
                   onAssign={assignTransaction}
+                  onSplit={setSplitTransaction}
                 />
               </div>
 
@@ -699,6 +732,15 @@ function Dashboard({ data }: { data: DashboardData }) {
             onSubmit={handleOpeningBalance}
           />
         ) : null}
+        {splitTransaction ? (
+          <SplitTransactionModal
+            transaction={splitTransaction}
+            campaigns={data.campaigns}
+            isSaving={pendingTransactionId === splitTransaction.id}
+            onClose={() => setSplitTransaction(null)}
+            onSubmit={splitTransactionAcrossCampaigns}
+          />
+        ) : null}
       </main>
     </div>
   );
@@ -709,11 +751,13 @@ function TransactionTable({
   campaigns,
   pendingTransactionId,
   onAssign,
+  onSplit,
 }: {
   transactions: TransactionSummary[];
   campaigns: CampaignSummary[];
   pendingTransactionId: string | null;
   onAssign: (transactionId: string, campaignId: string | null) => void;
+  onSplit: (transaction: TransactionSummary) => void;
 }) {
   return (
     <div className="mt-4 overflow-hidden rounded-md border border-zinc-200">
@@ -734,7 +778,7 @@ function TransactionTable({
             {transactions.map((transaction) => (
               <tr
                 key={transaction.id}
-                className={transaction.campaign ? "hover:bg-zinc-50" : "bg-rose-50/50 hover:bg-rose-50"}
+                className={transaction.campaign || transaction.allocations.length ? "hover:bg-zinc-50" : "bg-rose-50/50 hover:bg-rose-50"}
               >
                 <td className="whitespace-nowrap px-3 py-2 tabular-nums text-zinc-600">{transactionDateTime(transaction.transactionDate)}</td>
                 <td className="min-w-[36rem] px-3 py-2 align-top">
@@ -755,7 +799,15 @@ function TransactionTable({
                   {transaction.debitAmount > 0 ? money(transaction.debitAmount) : "-"}
                 </td>
                 <td className="px-3 py-2">
-                  {transaction.campaign ? (
+                  {transaction.allocations.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {transaction.allocations.map((allocation) => (
+                        <span key={allocation.campaignId} className="rounded-md border border-violet-200 bg-violet-50 px-2 py-1 text-xs font-medium text-violet-700">
+                          {allocation.campaign.code}: {money(allocation.amount)}
+                        </span>
+                      ))}
+                    </div>
+                  ) : transaction.campaign ? (
                     <span className="inline-flex rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700">
                       {transaction.campaign.code}
                     </span>
@@ -766,7 +818,7 @@ function TransactionTable({
                   )}
                 </td>
                 <td className="px-3 py-2">
-                  <select
+                  <div className="flex items-center gap-2"><select
                     value={transaction.campaign?.id ?? ""}
                     disabled={pendingTransactionId === transaction.id}
                     onChange={(event) => onAssign(transaction.id, event.target.value || null)}
@@ -779,6 +831,9 @@ function TransactionTable({
                       </option>
                     ))}
                   </select>
+                  <button type="button" onClick={() => onSplit(transaction)} className="rounded-md border border-violet-300 bg-white px-2 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-50">
+                    Chia
+                  </button></div>
                 </td>
               </tr>
             ))}
@@ -927,11 +982,13 @@ function DebitTransactionTable({
   campaigns,
   pendingTransactionId,
   onAssign,
+  onSplit,
 }: {
   transactions: TransactionSummary[];
   campaigns: CampaignSummary[];
   pendingTransactionId: string | null;
   onAssign: (transactionId: string, campaignId: string | null) => void;
+  onSplit: (transaction: TransactionSummary) => void;
 }) {
   return (
     <div className="mt-4 overflow-hidden rounded-md border border-zinc-200">
@@ -951,7 +1008,7 @@ function DebitTransactionTable({
             {transactions.map((transaction) => (
               <tr
                 key={transaction.id}
-                className={transaction.campaign ? "hover:bg-zinc-50" : "bg-amber-50/60 hover:bg-amber-50"}
+                className={transaction.campaign || transaction.allocations.length ? "hover:bg-zinc-50" : "bg-amber-50/60 hover:bg-amber-50"}
               >
                 <td className="whitespace-nowrap px-3 py-2 align-top text-zinc-600">
                   {dateOnly(transaction.transactionDate)}
@@ -968,7 +1025,15 @@ function DebitTransactionTable({
                   {money(transaction.debitAmount)}
                 </td>
                 <td className="px-3 py-2 align-top">
-                  {transaction.campaign ? (
+                  {transaction.allocations.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {transaction.allocations.map((allocation) => (
+                        <span key={allocation.campaignId} className="rounded-md border border-violet-200 bg-violet-50 px-2 py-1 text-xs font-medium text-violet-700">
+                          {allocation.campaign.code}: {money(allocation.amount)}
+                        </span>
+                      ))}
+                    </div>
+                  ) : transaction.campaign ? (
                     <span className="inline-flex rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700">
                       {transaction.campaign.code}
                     </span>
@@ -979,7 +1044,7 @@ function DebitTransactionTable({
                   )}
                 </td>
                 <td className="px-3 py-2 align-top">
-                  <select
+                  <div className="flex items-center gap-2"><select
                     value={transaction.campaign?.id ?? ""}
                     disabled={pendingTransactionId === transaction.id}
                     onChange={(event) => onAssign(transaction.id, event.target.value || null)}
@@ -992,6 +1057,9 @@ function DebitTransactionTable({
                       </option>
                     ))}
                   </select>
+                  <button type="button" onClick={() => onSplit(transaction)} className="rounded-md border border-violet-300 bg-white px-2 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-50">
+                    Chia
+                  </button></div>
                 </td>
               </tr>
             ))}
@@ -1091,6 +1159,59 @@ function FundSummaryTable({ data }: { data: DashboardData }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function SplitTransactionModal({
+  transaction,
+  campaigns,
+  isSaving,
+  onClose,
+  onSubmit,
+}: {
+  transaction: TransactionSummary;
+  campaigns: CampaignSummary[];
+  isSaving: boolean;
+  onClose: () => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  const total = Math.max(transaction.creditAmount, transaction.debitAmount);
+  const existing = new Map(transaction.allocations.map((item) => [item.campaignId, item.amount]));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-zinc-950/50 px-4 py-8">
+      <form onSubmit={onSubmit} className="w-full max-w-xl rounded-lg bg-white p-5 shadow-xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-zinc-950">Chia giao dịch cho nhiều thiện pháp</h2>
+            <p className="mt-1 text-sm text-zinc-500">Tổng cần phân bổ: <strong className="text-zinc-900">{money(total)}</strong></p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-md p-1 text-zinc-500 hover:bg-zinc-100"><X className="h-5 w-5" /></button>
+        </div>
+        <p className="mt-4 rounded-md bg-zinc-50 p-3 text-sm text-zinc-700">{transaction.description}</p>
+        <div className="mt-4 max-h-[50vh] space-y-2 overflow-y-auto pr-1">
+          {campaigns.map((campaign) => (
+            <label key={campaign.id} className="grid grid-cols-[1fr_12rem] items-center gap-3 rounded-md border border-zinc-200 p-3 text-sm">
+              <span><strong>{campaign.code}</strong><span className="ml-2 text-zinc-500">{campaign.name}</span></span>
+              <input
+                name={`allocation-${campaign.id}`}
+                inputMode="numeric"
+                defaultValue={existing.get(campaign.id) || ""}
+                placeholder="0"
+                className="rounded-md border border-zinc-300 px-3 py-2 text-right outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-100"
+              />
+            </label>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-zinc-500">Nhập số tiền cho ít nhất 2 thiện pháp. Tổng các khoản phải đúng bằng số tiền giao dịch.</p>
+        <div className="mt-5 flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium">Hủy</button>
+          <button disabled={isSaving} className="inline-flex items-center gap-2 rounded-md bg-violet-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-60">
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Lưu phân bổ
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

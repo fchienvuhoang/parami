@@ -26,7 +26,7 @@ export async function getReadonlyDashboardData(): Promise<ReadonlyWorkspaceSumma
   const workspaces: BankWorkspace[] = ["VIB"];
 
   return Promise.all(workspaces.map(async (workspace) => {
-    const [account, campaigns, transactionSums, totalIncome] = await Promise.all([
+    const [account, campaigns, transactionSums, totalIncome, allocations] = await Promise.all([
       prisma.bankAccount.findFirst({
         where: { workspace },
         orderBy: { updatedAt: "desc" },
@@ -53,9 +53,20 @@ export async function getReadonlyDashboardData(): Promise<ReadonlyWorkspaceSumma
         where: { workspace },
         _sum: { creditAmount: true },
       }),
+      prisma.transactionAllocation.findMany({
+        where: { transaction: { workspace, creditAmount: { gt: 0 } } },
+        select: { campaignId: true, transactionId: true, amount: true },
+      }),
     ]);
 
     const incomeByCampaign = new Map(transactionSums.map((item) => [item.campaignId, item]));
+    const allocationsByCampaign = new Map<string, { income: number; transactionIds: Set<string> }>();
+    for (const allocation of allocations) {
+      const current = allocationsByCampaign.get(allocation.campaignId) ?? { income: 0, transactionIds: new Set<string>() };
+      current.income += decimalToNumber(allocation.amount);
+      current.transactionIds.add(allocation.transactionId);
+      allocationsByCampaign.set(allocation.campaignId, current);
+    }
     return {
       workspace,
       account: account ? {
@@ -65,12 +76,13 @@ export async function getReadonlyDashboardData(): Promise<ReadonlyWorkspaceSumma
       totalIncome: decimalToNumber(totalIncome._sum.creditAmount),
       campaigns: campaigns.map((campaign) => {
         const summary = incomeByCampaign.get(campaign.id);
+        const allocated = allocationsByCampaign.get(campaign.id);
         return {
           code: campaign.code,
           name: campaign.name,
           status: campaign.status,
-          income: decimalToNumber(summary?._sum.creditAmount),
-          transactionCount: summary?._count._all ?? 0,
+          income: decimalToNumber(summary?._sum.creditAmount) + (allocated?.income ?? 0),
+          transactionCount: (summary?._count._all ?? 0) + (allocated?.transactionIds.size ?? 0),
         };
       }),
     };
