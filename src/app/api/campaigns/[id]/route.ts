@@ -34,6 +34,17 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     });
     if (!previousCampaign) return NextResponse.json({ error: "Không tìm thấy thiện pháp." }, { status: 404 });
 
+    const duplicateCampaign = await prisma.campaign.findFirst({
+      where: { code, id: { not: id } },
+      select: { name: true },
+    });
+    if (duplicateCampaign) {
+      return NextResponse.json(
+        { error: `Mã thiện pháp “${code}” đã được sử dụng bởi “${duplicateCampaign.name}”. Vui lòng nhập mã khác.` },
+        { status: 409 },
+      );
+    }
+
     const campaign = await prisma.$transaction(async (tx: TransactionClient) => {
       await tx.campaignKeyword.deleteMany({
         where: { campaignId: id },

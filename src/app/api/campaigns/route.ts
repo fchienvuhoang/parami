@@ -42,6 +42,17 @@ export async function POST(request: Request) {
     const code = makeCampaignCode(body.code);
     const keywords = uniqueKeywords([body.code, ...body.keywords]);
 
+    const existingCampaign = await prisma.campaign.findUnique({
+      where: { code },
+      select: { name: true },
+    });
+    if (existingCampaign) {
+      return NextResponse.json(
+        { error: `Mã thiện pháp “${code}” đã được sử dụng bởi “${existingCampaign.name}”. Vui lòng nhập mã khác.` },
+        { status: 409 },
+      );
+    }
+
     const campaign = await prisma.campaign.create({
       data: {
         workspace,

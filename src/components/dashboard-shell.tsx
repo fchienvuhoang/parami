@@ -522,7 +522,10 @@ function Dashboard({ data }: { data: DashboardData }) {
               </div>
               <button
                 type="button"
-                onClick={() => setCampaignModal({ mode: "create" })}
+                onClick={() => {
+                  setError(null);
+                  setCampaignModal({ mode: "create" });
+                }}
                 className="inline-flex items-center justify-center gap-2 rounded-md bg-indigo-700 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-800"
               >
                 <Plus className="h-4 w-4" />
@@ -580,7 +583,10 @@ function Dashboard({ data }: { data: DashboardData }) {
                 </div>
                 <CampaignTable
                   campaigns={data.campaigns}
-                  onSelect={(campaign) => setCampaignModal({ mode: "edit", campaign })}
+                  onSelect={(campaign) => {
+                    setError(null);
+                    setCampaignModal({ mode: "edit", campaign });
+                  }}
                 />
               </Panel>
 
@@ -706,9 +712,13 @@ function Dashboard({ data }: { data: DashboardData }) {
         {campaignModal ? (
           <CampaignModal
             state={campaignModal}
+            error={error}
             isSaving={isSavingCampaign}
             isDeleting={campaignModal.mode === "edit" && deletingCampaignId === campaignModal.campaign.id}
-            onClose={() => setCampaignModal(null)}
+            onClose={() => {
+              setError(null);
+              setCampaignModal(null);
+            }}
             onCreate={handleCampaignCreate}
             onUpdate={handleCampaignUpdate}
             onDelete={handleCampaignDelete}
@@ -1292,6 +1302,7 @@ function OpeningBalanceModal({
 
 function CampaignModal({
   state,
+  error,
   isSaving,
   isDeleting,
   onClose,
@@ -1300,6 +1311,7 @@ function CampaignModal({
   onDelete,
 }: {
   state: CampaignModalState;
+  error: string | null;
   isSaving: boolean;
   isDeleting: boolean;
   onClose: () => void;
@@ -1357,6 +1369,11 @@ function CampaignModal({
           className="space-y-4 px-5 py-4"
           onSubmit={(event) => (campaign ? onUpdate(event, campaign.id) : onCreate(event))}
         >
+          {error ? (
+            <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              {error}
+            </div>
+          ) : null}
           <div className="grid gap-4 md:grid-cols-2">
             <Input name="code" label="Mã" defaultValue={campaign?.code ?? ""} placeholder="cntt10" required />
             <Select name="status" label="Trạng thái" defaultValue={campaign?.status ?? "ACTIVE"}>
