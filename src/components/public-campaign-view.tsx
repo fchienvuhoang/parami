@@ -46,16 +46,25 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
     <div className="min-h-screen bg-[#fff8f3] text-zinc-950">
       <header className="relative overflow-hidden border-b border-rose-100 bg-[#fff1ea]">
         <Image
+          src="/devas-hero-bg-mobile-v1.png"
+          alt=""
+          fill
+          priority
+          sizes="(max-width: 1023px) 100vw, 1px"
+          aria-hidden="true"
+          className="pointer-events-none object-cover object-center opacity-60 sm:opacity-65 lg:hidden"
+        />
+        <Image
           src="/devas-hero-bg-v2.jpg"
           alt=""
           fill
           priority
-          sizes="100vw"
+          sizes="(min-width: 1024px) 100vw, 1px"
           aria-hidden="true"
-          className="pointer-events-none object-cover object-left md:object-center"
+          className="pointer-events-none hidden object-cover object-center lg:block"
         />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/5 via-[#fff8f3]/10 to-[#fff1ea]/50 sm:from-white/20 sm:via-[#fff8f3]/35 sm:to-[#fff1ea]/80" />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-white/20 sm:from-white/15 sm:via-transparent sm:to-white/15" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/5 via-[#fff8f3]/10 to-[#fff1ea]/50 lg:from-white/20 lg:via-[#fff8f3]/35 lg:to-[#fff1ea]/80" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-white/20 lg:from-white/15 lg:via-transparent lg:to-white/15" />
 
         <div className="relative mx-auto grid max-w-5xl gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center lg:gap-12 lg:py-14">
           <div>
@@ -66,7 +75,7 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
                 width={112}
                 height={112}
                 priority
-                className="h-20 w-20 shrink-0 rounded-full border-2 border-white object-cover shadow-lg shadow-rose-950/10 sm:h-28 sm:w-28"
+                className="h-20 w-20 shrink-0 rounded-full border-2 border-white object-cover shadow-lg shadow-rose-950/10 lg:h-28 lg:w-28"
               />
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-2 rounded-full bg-rose-950 px-3 py-1.5 text-xs font-medium text-white shadow-sm">
@@ -83,9 +92,9 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
               <span className="hidden rounded-2xl bg-white/70 p-3 text-rose-700 shadow-sm ring-1 ring-rose-100 backdrop-blur sm:block">
                 <HeartHandshake className="h-7 w-7" />
               </span>
-              <div>
+              <div className="min-w-0 rounded-2xl border border-white/[0.65] bg-white/[0.55] p-4 shadow-lg shadow-rose-950/5 backdrop-blur-[1.5px] lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-rose-700">Cùng gieo duyên lành</p>
-                <h1 className="mt-2 max-w-2xl text-3xl font-semibold leading-tight tracking-[-0.03em] text-rose-950 sm:text-4xl">
+                <h1 className="mt-2 max-w-2xl text-3xl font-bold leading-tight tracking-[-0.03em] text-rose-950 drop-shadow-[0_1px_0_rgba(255,255,255,0.9)] lg:text-4xl lg:font-semibold lg:drop-shadow-none">
                   {data.name}
                 </h1>
                 {data.description ? (
@@ -204,30 +213,31 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
           </div>
 
           <div className="mt-4 space-y-2 md:hidden">
-            {filteredTransactions.map((transaction) => (
-              <PublicTransactionCard key={transaction.id} transaction={transaction} />
+            {filteredTransactions.map((transaction, index) => (
+              <PublicTransactionCard key={transaction.id} transaction={transaction} index={index + 1} />
             ))}
             {filteredTransactions.length === 0 ? <EmptyState /> : null}
           </div>
 
-          <div className="mt-4 hidden overflow-hidden rounded-md border border-zinc-200 md:block">
+          <div className="mt-4 hidden overflow-hidden rounded-xl border border-emerald-200 shadow-sm shadow-emerald-950/5 md:block">
             <div className="max-h-[680px] overflow-auto">
-              <table className="w-full min-w-[760px] text-left text-sm">
-                <thead className="sticky top-0 bg-zinc-50 text-xs uppercase text-zinc-500">
+              <table className="w-full min-w-[820px] text-left text-sm">
+                <thead className="sticky top-0 z-10 bg-gradient-to-r from-emerald-100 via-emerald-50 to-amber-50 text-[11px] uppercase tracking-[0.1em] text-emerald-900 shadow-sm">
                   <tr>
-                    <th className="px-3 py-2">Ngày</th>
-                    <th className="px-3 py-2">Phương danh / Nội dung chuyển khoản</th>
-                    <th className="px-3 py-2">Loại</th>
-                    <th className="px-3 py-2 text-right">Số tiền</th>
+                    <th className="w-16 px-3 py-3 text-center font-semibold">STT</th>
+                    <th className="w-32 px-3 py-3 font-semibold">Ngày</th>
+                    <th className="px-3 py-3 font-semibold">Phương danh thí chủ</th>
+                    <th className="w-40 px-3 py-3 font-semibold">Loại</th>
+                    <th className="w-40 px-3 py-3 text-right font-semibold">Tịnh tài</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100 bg-white">
-                  {filteredTransactions.map((transaction) => (
-                    <PublicTransactionRow key={transaction.id} transaction={transaction} />
+                <tbody className="divide-y divide-emerald-100/70 bg-white">
+                  {filteredTransactions.map((transaction, index) => (
+                    <PublicTransactionRow key={transaction.id} transaction={transaction} index={index + 1} />
                   ))}
                   {filteredTransactions.length === 0 ? (
                     <tr>
-                      <td colSpan={4}>
+                      <td colSpan={5}>
                         <EmptyState />
                       </td>
                     </tr>
@@ -242,49 +252,65 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
   );
 }
 
-function PublicTransactionCard({ transaction }: { transaction: PublicCampaignTransaction }) {
+function PublicTransactionCard({ transaction, index }: { transaction: PublicCampaignTransaction; index: number }) {
   const meta = transactionMeta(transaction);
 
   return (
-    <article className="rounded-md border border-zinc-200 bg-white p-3">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-xs tabular-nums text-zinc-500">{transactionDateTime(transaction.transactionDate)}</div>
-          <div className={`mt-1 inline-flex rounded-md border px-2 py-1 text-xs font-medium ${meta.className}`}>
-            {meta.label}
+    <article className="overflow-hidden rounded-xl border border-emerald-200 bg-white shadow-sm shadow-emerald-950/5">
+      <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-emerald-50 via-white to-amber-50/70 px-3 py-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-emerald-200 bg-white text-xs font-semibold tabular-nums text-emerald-700 shadow-sm">
+            {index}
+          </span>
+          <div className="min-w-0">
+            <div className="text-xs font-medium tabular-nums text-stone-500">{transactionDateTime(transaction.transactionDate)}</div>
+            <div className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${meta.className}`}>
+              {meta.label}
+            </div>
           </div>
         </div>
-        <div className={`whitespace-nowrap text-right text-sm font-semibold ${meta.amountClassName}`}>
+        <div className={`whitespace-nowrap rounded-full bg-white px-3 py-1.5 text-right text-sm font-bold tabular-nums shadow-sm ring-1 ring-inset ring-emerald-100 ${meta.amountClassName}`}>
           {money(meta.amount)}
         </div>
       </div>
-      <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-zinc-800">
+      <p className="whitespace-pre-wrap break-words border-t border-emerald-100 px-3 py-3 text-sm font-semibold leading-6 text-zinc-900">
         {redactPhoneNumbers(transaction.description)}
       </p>
-      <GroupedContributionDetails transaction={transaction} />
+      {transaction.groupedContribution ? (
+        <div className="px-3 pb-3">
+          <GroupedContributionDetails transaction={transaction} />
+        </div>
+      ) : null}
     </article>
   );
 }
 
-function PublicTransactionRow({ transaction }: { transaction: PublicCampaignTransaction }) {
+function PublicTransactionRow({ transaction, index }: { transaction: PublicCampaignTransaction; index: number }) {
   const meta = transactionMeta(transaction);
 
   return (
-    <tr className="hover:bg-zinc-50">
-      <td className="whitespace-nowrap px-3 py-2 align-top tabular-nums text-zinc-600">{transactionDateTime(transaction.transactionDate)}</td>
-      <td className="min-w-[360px] px-3 py-2 align-top">
-        <div className="whitespace-pre-wrap break-words font-medium text-zinc-900">
+    <tr className="odd:bg-white even:bg-emerald-50/25 transition-colors hover:bg-amber-50/60">
+      <td className="px-3 py-3 text-center align-top">
+        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-emerald-200 bg-white text-xs font-semibold tabular-nums text-emerald-700 shadow-sm">
+          {index}
+        </span>
+      </td>
+      <td className="whitespace-nowrap px-3 py-3 align-top text-xs tabular-nums text-stone-500">{transactionDateTime(transaction.transactionDate)}</td>
+      <td className="min-w-[360px] px-3 py-3 align-top">
+        <div className="whitespace-pre-wrap break-words font-semibold leading-6 text-zinc-900">
           {redactPhoneNumbers(transaction.description)}
         </div>
         <GroupedContributionDetails transaction={transaction} />
       </td>
-      <td className="whitespace-nowrap px-3 py-2 align-top">
-        <span className={`inline-flex rounded-md border px-2 py-1 text-xs font-medium ${meta.className}`}>
+      <td className="whitespace-nowrap px-3 py-3 align-top">
+        <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${meta.className}`}>
           {meta.label}
         </span>
       </td>
-      <td className={`whitespace-nowrap px-3 py-2 text-right align-top font-semibold ${meta.amountClassName}`}>
-        {money(meta.amount)}
+      <td className="whitespace-nowrap px-3 py-3 text-right align-top">
+        <span className={`inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-sm font-bold tabular-nums ring-1 ring-inset ring-emerald-100 ${meta.amountClassName}`}>
+          {money(meta.amount)}
+        </span>
       </td>
     </tr>
   );
