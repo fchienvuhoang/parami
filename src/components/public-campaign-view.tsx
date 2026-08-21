@@ -93,7 +93,7 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
                 <HeartHandshake className="h-7 w-7" />
               </span>
               <div className="min-w-0 rounded-2xl border border-white/[0.65] bg-white/[0.55] p-4 shadow-lg shadow-rose-950/5 backdrop-blur-[1.5px] lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-rose-700">Cùng gieo duyên lành</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-rose-700">DĀNA PĀRAMĪ</p>
                 <h1 className="mt-2 max-w-2xl text-3xl font-bold leading-tight tracking-[-0.03em] text-rose-950 drop-shadow-[0_1px_0_rgba(255,255,255,0.9)] lg:text-4xl lg:font-semibold lg:drop-shadow-none">
                   {data.name}
                 </h1>
