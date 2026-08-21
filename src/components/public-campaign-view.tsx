@@ -45,8 +45,17 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
   return (
     <div className="min-h-screen bg-[#fff8f3] text-zinc-950">
       <header className="relative overflow-hidden border-b border-rose-100 bg-[#fff1ea]">
-        <div className="pointer-events-none absolute -right-24 -top-32 h-80 w-80 rounded-full bg-rose-200/40 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 left-1/3 h-64 w-64 rounded-full bg-amber-200/40 blur-3xl" />
+        <Image
+          src="/devas-hero-bg-v2.jpg"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          aria-hidden="true"
+          className="pointer-events-none object-cover object-center"
+        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/25 via-[#fff8f3]/45 to-[#fff1ea]/85" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/20 via-transparent to-white/20" />
 
         <div className="relative mx-auto grid max-w-5xl gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center lg:gap-12 lg:py-14">
           <div>
@@ -172,19 +181,24 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
 
         <section className="rounded-md border border-zinc-200 bg-white p-3 shadow-sm sm:p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-sm font-semibold text-zinc-950">Danh sách giao dịch</h2>
-              <p className="mt-1 text-xs text-zinc-500">
-                {filteredTransactions.length.toLocaleString("vi-VN")} / {data.transactions.length.toLocaleString("vi-VN")} giao dịch
-              </p>
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-800 text-white shadow-sm shadow-emerald-900/20">
+                <HeartHandshake className="h-5 w-5" />
+              </span>
+              <div>
+                <h2 className="text-base font-semibold tracking-tight text-emerald-950">Phương danh thí chủ</h2>
+                <p className="mt-0.5 text-xs text-stone-500">
+                  {filteredTransactions.length.toLocaleString("vi-VN")} / {data.transactions.length.toLocaleString("vi-VN")} khoản hùn phước công khai
+                </p>
+              </div>
             </div>
             <div className="relative w-full sm:max-w-sm">
               <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Tìm theo tên hoặc nội dung"
-                className="w-full rounded-md border border-zinc-300 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-100"
+                placeholder="Tìm theo phương danh hoặc nội dung"
+                className="w-full rounded-lg border border-emerald-200 bg-emerald-50/30 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-100"
               />
             </div>
           </div>
@@ -202,7 +216,7 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
                 <thead className="sticky top-0 bg-zinc-50 text-xs uppercase text-zinc-500">
                   <tr>
                     <th className="px-3 py-2">Ngày</th>
-                    <th className="px-3 py-2">Nội dung chuyển khoản</th>
+                    <th className="px-3 py-2">Phương danh / Nội dung chuyển khoản</th>
                     <th className="px-3 py-2">Loại</th>
                     <th className="px-3 py-2 text-right">Số tiền</th>
                   </tr>
@@ -286,45 +300,61 @@ function GroupedContributionDetails({ transaction }: { transaction: PublicCampai
   const total = batch.entries.reduce((sum, entry) => sum + entry.amount, 0);
 
   return (
-    <details open className="group mt-3 overflow-hidden rounded-md border border-emerald-200 bg-emerald-50/50">
-      <summary className="cursor-pointer list-none px-3 py-2 marker:hidden">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <div className="text-sm font-semibold text-emerald-900">{batch.title}</div>
-            <div className="mt-0.5 text-xs text-emerald-700">
-              {batch.entries.length.toLocaleString("vi-VN")} khoản hùn phước · Bấm để xem chi tiết
+    <details open className="group mt-3 overflow-hidden rounded-xl border border-emerald-200 bg-white shadow-sm shadow-emerald-950/5">
+      <summary className="cursor-pointer list-none bg-gradient-to-r from-emerald-50 via-amber-50/60 to-rose-50 px-3 py-3 marker:hidden sm:px-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-white shadow-sm ring-4 ring-white/80">
+              <HeartHandshake className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <div className="text-sm font-semibold tracking-tight text-emerald-950 sm:text-base">Phương danh thí chủ</div>
+              <div className="mt-0.5 text-xs text-emerald-700">
+                {batch.entries.length.toLocaleString("vi-VN")} thí chủ cùng hùn phước · Chạm để thu gọn hoặc mở
+              </div>
             </div>
           </div>
-          <span className="whitespace-nowrap text-xs font-semibold tabular-nums text-emerald-800">{money(total)}</span>
+          <div className="rounded-lg border border-white/80 bg-white/80 px-3 py-2 text-right shadow-sm">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-stone-500">Tổng tịnh tài</div>
+            <div className="mt-0.5 whitespace-nowrap text-sm font-bold tabular-nums text-emerald-800">{money(total)}</div>
+          </div>
         </div>
       </summary>
       <div className="border-t border-emerald-200 bg-white">
-        {batch.note ? <p className="px-3 py-2 text-xs leading-5 text-zinc-600">{batch.note}</p> : null}
-        <div className="border-t border-zinc-100">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-zinc-50 text-xs uppercase text-zinc-500">
+        {batch.note ? <p className="border-b border-amber-100 bg-amber-50/50 px-3 py-2 text-xs leading-5 text-stone-600 sm:px-4">{batch.note}</p> : null}
+        <div className="border-t border-emerald-100">
+          <table className="w-full table-fixed text-sm">
+            <thead className="bg-gradient-to-r from-emerald-100/80 via-emerald-50 to-amber-50 text-[11px] uppercase tracking-[0.12em] text-emerald-900">
               <tr>
-                <th className="w-12 px-3 py-2 text-center">STT</th>
-                <th className="px-3 py-2 text-left">Người hùn phước</th>
-                <th className="px-3 py-2 text-right">Số tiền</th>
+                <th className="w-14 px-3 py-3 text-center font-semibold">STT</th>
+                <th className="px-2 py-3 text-left font-semibold sm:px-4">Phương danh thí chủ</th>
+                <th className="w-32 px-3 py-3 text-right font-semibold sm:w-40 sm:px-4">Tịnh tài</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-emerald-100/70 bg-white">
               {batch.entries.map((entry, index) => (
-                <tr key={entry.id}>
-                  <td className="px-3 py-2 text-center tabular-nums text-zinc-500">{index + 1}</td>
-                  <td className="px-3 py-2 text-zinc-800">
-                    <div className="font-medium">{redactPhoneNumbers(entry.donorName)}</div>
-                    {entry.note ? <div className="mt-0.5 text-xs text-zinc-500">{redactPhoneNumbers(entry.note)}</div> : null}
+                <tr key={entry.id} className="odd:bg-white even:bg-emerald-50/25 transition-colors hover:bg-amber-50/60">
+                  <td className="px-3 py-2.5 text-center">
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-emerald-200 bg-white text-xs font-semibold tabular-nums text-emerald-700 shadow-sm">
+                      {index + 1}
+                    </span>
                   </td>
-                  <td className="whitespace-nowrap px-3 py-2 text-right font-semibold tabular-nums text-zinc-900">{money(entry.amount)}</td>
+                  <td className="break-words px-2 py-2.5 text-zinc-800 sm:px-4">
+                    <div className="font-semibold leading-5 text-zinc-900">{redactPhoneNumbers(entry.donorName)}</div>
+                    {entry.note ? <div className="mt-1 text-xs leading-5 text-stone-500">{redactPhoneNumbers(entry.note)}</div> : null}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-right sm:px-4">
+                    <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold tabular-nums text-emerald-800 ring-1 ring-inset ring-emerald-100 sm:text-sm">
+                      {money(entry.amount)}
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>
-            <tfoot className="border-t border-emerald-200 bg-emerald-50">
+            <tfoot className="border-t-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-amber-50">
               <tr>
-                <td colSpan={2} className="px-3 py-2 text-right text-xs font-semibold uppercase text-emerald-800">Tổng danh sách</td>
-                <td className="whitespace-nowrap px-3 py-2 text-right font-semibold tabular-nums text-emerald-900">{money(total)}</td>
+                <td colSpan={2} className="px-3 py-3.5 text-right text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800">Tổng hùn phước</td>
+                <td className="whitespace-nowrap px-3 py-3.5 text-right text-sm font-bold tabular-nums text-emerald-950 sm:px-4 sm:text-base">{money(total)}</td>
               </tr>
             </tfoot>
           </table>

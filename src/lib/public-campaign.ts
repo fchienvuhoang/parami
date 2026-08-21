@@ -335,7 +335,7 @@ export function getCachedPublicCampaignData(code: string) {
   const normalizedCode = makeCampaignCode(code);
   return unstable_cache(
     () => getPublicCampaignData(normalizedCode),
-    ["public-campaign-data-v7", normalizedCode],
+    ["public-campaign-data-v8", normalizedCode],
     { revalidate: false, tags: [publicCampaignDataTag(normalizedCode)] },
   )();
 }

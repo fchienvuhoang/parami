@@ -7,7 +7,7 @@ import { getPrisma } from "@/lib/prisma";
 import { invalidatePublicCampaignCache, warmPublicCampaignCaches } from "@/lib/public-campaign";
 
 const contributionSchema = z.object({
-  title: z.string().trim().min(1).max(160).default("Danh sách hùn phước nộp gộp"),
+  title: z.string().trim().min(1).max(160).default("Phương danh thí chủ hùn phước"),
   note: z.string().trim().max(2000).optional().nullable(),
   entries: z.array(z.object({
     donorName: z.string().trim().min(1).max(160),

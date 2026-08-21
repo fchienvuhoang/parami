@@ -1329,7 +1329,7 @@ function GroupedContributionModal({
   onDelete: () => void;
 }) {
   const existing = transaction.groupedContribution;
-  const [title, setTitle] = useState(existing?.title ?? "Danh sách hùn phước nộp gộp");
+  const [title, setTitle] = useState(existing?.title ?? "Phương danh thí chủ hùn phước");
   const [note, setNote] = useState(existing?.note ?? "Danh sách nhập thủ công, đối chiếu với giao dịch ngân hàng nộp gộp.");
   const [rows, setRows] = useState<ContributionEditorRow[]>(() =>
     existing?.entries.length

@@ -159,7 +159,7 @@ model GroupedContribution {
   id            String              @id @default(cuid())
   transactionId String              @unique
   transaction   BankTransaction     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  title         String              @default("Danh sách hùn phước nộp gộp")
+  title         String              @default("Phương danh thí chủ hùn phước")
   note          String?             @db.Text
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
