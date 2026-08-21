@@ -52,10 +52,10 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
           priority
           sizes="100vw"
           aria-hidden="true"
-          className="pointer-events-none object-cover object-center"
+          className="pointer-events-none object-cover object-left md:object-center"
         />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/25 via-[#fff8f3]/45 to-[#fff1ea]/85" />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/20 via-transparent to-white/20" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/5 via-[#fff8f3]/10 to-[#fff1ea]/50 sm:from-white/20 sm:via-[#fff8f3]/35 sm:to-[#fff1ea]/80" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-white/20 sm:from-white/15 sm:via-transparent sm:to-white/15" />
 
         <div className="relative mx-auto grid max-w-5xl gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center lg:gap-12 lg:py-14">
           <div>
