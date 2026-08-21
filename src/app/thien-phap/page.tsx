@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ArrowRight, HeartHandshake, Sparkles } from "lucide-react";
 import Image from "next/image";
+import { connection } from "next/server";
 import { getCachedPublicCampaignList } from "@/lib/public-campaign";
 
 export const metadata: Metadata = {
@@ -8,10 +9,10 @@ export const metadata: Metadata = {
   description: "Danh sách các thiện pháp đang được Pāramī Group thực hiện.",
 };
 
-export const dynamic = "force-static";
 export const revalidate = false;
 
 export default async function PublicCampaignListPage() {
+  await connection();
   const campaigns = await getCachedPublicCampaignList();
 
   return (
