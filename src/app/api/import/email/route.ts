@@ -52,8 +52,10 @@ export async function POST(request: Request) {
     }
 
     const result = await importVibStatement(statement.fileBuffer, sourceLabel);
-    const affectedCodes = invalidatePublicCampaignCache(result.affectedCampaignCodes);
-    await warmPublicCampaignCaches(affectedCodes);
+    if (result.insertedRows > 0) {
+      const affectedCodes = invalidatePublicCampaignCache(result.affectedCampaignCodes);
+      await warmPublicCampaignCaches(affectedCodes);
+    }
 
     return NextResponse.json({
       ...result,

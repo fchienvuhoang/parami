@@ -8,7 +8,8 @@ export const metadata: Metadata = {
   description: "Danh sách các thiện pháp đang được Pāramī Group thực hiện.",
 };
 
-export const revalidate = 30;
+export const dynamic = "force-static";
+export const revalidate = false;
 
 export default async function PublicCampaignListPage() {
   const campaigns = await getCachedPublicCampaignList();

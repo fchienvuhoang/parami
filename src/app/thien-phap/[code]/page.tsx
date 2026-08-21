@@ -9,7 +9,8 @@ type Props = {
   }>;
 };
 
-export const revalidate = 30;
+export const dynamic = "force-static";
+export const revalidate = false;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { code } = await params;

@@ -11,6 +11,7 @@ import {
   FileSpreadsheet,
   LogOut,
   Loader2,
+  ListPlus,
   Mail,
   Plus,
   RefreshCw,
@@ -67,6 +68,12 @@ type CampaignModalState =
       campaign: CampaignSummary;
     };
 
+type ContributionInput = {
+  donorName: string;
+  amount: number;
+  note: string;
+};
+
 const statusLabels = {
   ACTIVE: "Đang chạy",
   PAUSED: "Tạm dừng",
@@ -103,6 +110,7 @@ function Dashboard({ data }: { data: DashboardData }) {
   const [pendingTransactionId, setPendingTransactionId] = useState<string | null>(null);
   const [campaignModal, setCampaignModal] = useState<CampaignModalState | null>(null);
   const [splitTransaction, setSplitTransaction] = useState<TransactionSummary | null>(null);
+  const [contributionTransaction, setContributionTransaction] = useState<TransactionSummary | null>(null);
   const [showSystemSettings, setShowSystemSettings] = useState(false);
   const [isSavingOpeningBalance, setIsSavingOpeningBalance] = useState(false);
   const [transactionRows, setTransactionRows] = useState(() => data.transactions.slice(0, 50));
@@ -354,6 +362,53 @@ function Dashboard({ data }: { data: DashboardData }) {
       }));
       setMessage(`Đã chia giao dịch cho ${allocations.length} thiện pháp.`);
       setSplitTransaction(null);
+      setTransactionReloadKey((value) => value + 1);
+      router.refresh();
+    } catch (caught) {
+      setError(getErrorMessage(caught));
+    } finally {
+      setPendingTransactionId(null);
+    }
+  }
+
+  async function saveGroupedContribution(payload: {
+    title: string;
+    note: string;
+    entries: ContributionInput[];
+  }) {
+    if (!contributionTransaction) return;
+    setError(null);
+    setMessage(null);
+    setPendingTransactionId(contributionTransaction.id);
+    try {
+      await readJson(await fetch(`/api/transactions/${contributionTransaction.id}/contributions`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }));
+      setMessage(`Đã lưu ${payload.entries.length} khoản hùn phước trong giao dịch nộp gộp.`);
+      setContributionTransaction(null);
+      setTransactionReloadKey((value) => value + 1);
+      router.refresh();
+    } catch (caught) {
+      setError(getErrorMessage(caught));
+    } finally {
+      setPendingTransactionId(null);
+    }
+  }
+
+  async function deleteGroupedContribution() {
+    if (!contributionTransaction?.groupedContribution) return;
+    if (!window.confirm("Xóa danh sách hùn phước nộp gộp này? Giao dịch ngân hàng vẫn được giữ nguyên.")) return;
+    setError(null);
+    setMessage(null);
+    setPendingTransactionId(contributionTransaction.id);
+    try {
+      await readJson(await fetch(`/api/transactions/${contributionTransaction.id}/contributions`, {
+        method: "DELETE",
+      }));
+      setMessage("Đã xóa danh sách nộp gộp; giao dịch ngân hàng không thay đổi.");
+      setContributionTransaction(null);
       setTransactionReloadKey((value) => value + 1);
       router.refresh();
     } catch (caught) {
@@ -673,6 +728,7 @@ function Dashboard({ data }: { data: DashboardData }) {
                   pendingTransactionId={pendingTransactionId}
                   onAssign={assignTransaction}
                   onSplit={setSplitTransaction}
+                  onContribution={setContributionTransaction}
                 />
               </div>
 
@@ -751,6 +807,16 @@ function Dashboard({ data }: { data: DashboardData }) {
             onSubmit={splitTransactionAcrossCampaigns}
           />
         ) : null}
+        {contributionTransaction ? (
+          <GroupedContributionModal
+            transaction={contributionTransaction}
+            isSaving={pendingTransactionId === contributionTransaction.id}
+            error={error}
+            onClose={() => setContributionTransaction(null)}
+            onSave={saveGroupedContribution}
+            onDelete={deleteGroupedContribution}
+          />
+        ) : null}
       </main>
     </div>
   );
@@ -762,12 +828,14 @@ function TransactionTable({
   pendingTransactionId,
   onAssign,
   onSplit,
+  onContribution,
 }: {
   transactions: TransactionSummary[];
   campaigns: CampaignSummary[];
   pendingTransactionId: string | null;
   onAssign: (transactionId: string, campaignId: string | null) => void;
   onSplit: (transaction: TransactionSummary) => void;
+  onContribution: (transaction: TransactionSummary) => void;
 }) {
   return (
     <div className="mt-4 overflow-hidden rounded-md border border-zinc-200">
@@ -843,7 +911,19 @@ function TransactionTable({
                   </select>
                   <button type="button" onClick={() => onSplit(transaction)} className="rounded-md border border-violet-300 bg-white px-2 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-50">
                     Chia
-                  </button></div>
+                  </button>
+                  {transaction.creditAmount > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => onContribution(transaction)}
+                      className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-emerald-300 bg-white px-2 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
+                    >
+                      <ListPlus className="h-3.5 w-3.5" />
+                      {transaction.groupedContribution
+                        ? `${transaction.groupedContribution.entries.length} người`
+                        : "Nộp gộp"}
+                    </button>
+                  ) : null}</div>
                 </td>
               </tr>
             ))}
@@ -1224,6 +1304,173 @@ function SplitTransactionModal({
       </form>
     </div>
   );
+}
+
+type ContributionEditorRow = {
+  key: string;
+  donorName: string;
+  amount: string;
+  note: string;
+};
+
+function GroupedContributionModal({
+  transaction,
+  isSaving,
+  error,
+  onClose,
+  onSave,
+  onDelete,
+}: {
+  transaction: TransactionSummary;
+  isSaving: boolean;
+  error: string | null;
+  onClose: () => void;
+  onSave: (payload: { title: string; note: string; entries: ContributionInput[] }) => void;
+  onDelete: () => void;
+}) {
+  const existing = transaction.groupedContribution;
+  const [title, setTitle] = useState(existing?.title ?? "Danh sách hùn phước nộp gộp");
+  const [note, setNote] = useState(existing?.note ?? "Danh sách nhập thủ công, đối chiếu với giao dịch ngân hàng nộp gộp.");
+  const [rows, setRows] = useState<ContributionEditorRow[]>(() =>
+    existing?.entries.length
+      ? existing.entries.map((entry) => ({
+          key: entry.id,
+          donorName: entry.donorName,
+          amount: String(entry.amount),
+          note: entry.note ?? "",
+        }))
+      : [{ key: newEditorRowKey(), donorName: "", amount: "", note: "" }],
+  );
+  const transactionTotal = transaction.creditAmount;
+  const enteredTotal = rows.reduce((sum, row) => sum + parseMoneyInputValue(row.amount), 0);
+  const totalMatches = Math.round(enteredTotal * 100) === Math.round(transactionTotal * 100);
+  const hasSingleCampaign = Boolean(transaction.campaign) && transaction.allocations.length === 0;
+
+  function updateRow(index: number, field: "donorName" | "amount" | "note", value: string) {
+    setRows((current) => current.map((row, rowIndex) => rowIndex === index ? { ...row, [field]: value } : row));
+  }
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    onSave({
+      title,
+      note,
+      entries: rows.map((row) => ({
+        donorName: row.donorName.trim(),
+        amount: parseMoneyInputValue(row.amount),
+        note: row.note.trim(),
+      })),
+    });
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-zinc-950/50 px-3 py-5 sm:px-4 sm:py-8">
+      <form onSubmit={submit} className="w-full max-w-4xl rounded-lg bg-white p-4 shadow-xl sm:p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-zinc-950">Danh sách hùn phước nộp gộp</h2>
+            <p className="mt-1 text-sm text-zinc-500">
+              Chứng từ ngân hàng: <strong className="text-zinc-900">{money(transactionTotal)}</strong>
+              {transaction.campaign ? <> · Thiện pháp <strong className="text-zinc-900">{transaction.campaign.code}</strong></> : null}
+            </p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-md p-1 text-zinc-500 hover:bg-zinc-100" aria-label="Đóng">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {!hasSingleCampaign ? (
+          <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            Hãy đóng cửa sổ này và gán giao dịch vào đúng một thiện pháp trước khi nhập danh sách.
+          </div>
+        ) : null}
+        {error ? <div className="mt-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div> : null}
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="text-sm font-medium text-zinc-700">
+            Tiêu đề công khai
+            <input value={title} onChange={(event) => setTitle(event.target.value)} required maxLength={160} className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 font-normal outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
+          </label>
+          <label className="text-sm font-medium text-zinc-700">
+            Ghi chú công khai
+            <input value={note} onChange={(event) => setNote(event.target.value)} maxLength={2000} className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 font-normal outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
+          </label>
+        </div>
+
+        <div className="mt-4 overflow-hidden rounded-md border border-zinc-200">
+          <div className="max-h-[50vh] overflow-auto">
+            <table className="w-full min-w-[720px] text-sm">
+              <thead className="sticky top-0 bg-zinc-50 text-xs uppercase text-zinc-500">
+                <tr>
+                  <th className="w-12 px-2 py-2 text-center">STT</th>
+                  <th className="px-2 py-2 text-left">Tên người hùn phước</th>
+                  <th className="w-48 px-2 py-2 text-right">Số tiền</th>
+                  <th className="px-2 py-2 text-left">Ghi chú</th>
+                  <th className="w-12 px-2 py-2" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 bg-white">
+                {rows.map((row, index) => (
+                  <tr key={row.key}>
+                    <td className="px-2 py-2 text-center tabular-nums text-zinc-500">{index + 1}</td>
+                    <td className="px-2 py-2">
+                      <input value={row.donorName} onChange={(event) => updateRow(index, "donorName", event.target.value)} required maxLength={160} placeholder="Họ và tên" className="w-full rounded-md border border-zinc-300 px-2 py-1.5 outline-none focus:border-emerald-600" />
+                    </td>
+                    <td className="px-2 py-2">
+                      <input value={row.amount} onChange={(event) => updateRow(index, "amount", event.target.value)} required inputMode="numeric" placeholder="0" className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-right tabular-nums outline-none focus:border-emerald-600" />
+                    </td>
+                    <td className="px-2 py-2">
+                      <input value={row.note} onChange={(event) => updateRow(index, "note", event.target.value)} maxLength={500} placeholder="Không bắt buộc" className="w-full rounded-md border border-zinc-300 px-2 py-1.5 outline-none focus:border-emerald-600" />
+                    </td>
+                    <td className="px-2 py-2 text-center">
+                      <button type="button" disabled={rows.length === 1} onClick={() => setRows((current) => current.filter((_, rowIndex) => rowIndex !== index))} className="rounded p-1 text-zinc-400 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-30" aria-label={`Xóa dòng ${index + 1}`}>
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <button type="button" onClick={() => setRows((current) => [...current, { key: newEditorRowKey(), donorName: "", amount: "", note: "" }])} className="inline-flex items-center justify-center gap-1 rounded-md border border-emerald-300 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50">
+            <Plus className="h-4 w-4" /> Thêm người
+          </button>
+          <div className="text-right text-sm">
+            <div>Đã nhập <strong className={totalMatches ? "text-emerald-700" : "text-rose-700"}>{money(enteredTotal)}</strong> / {money(transactionTotal)}</div>
+            <div className="mt-0.5 text-xs text-zinc-500">{rows.length.toLocaleString("vi-VN")} khoản · Tổng phải khớp chứng từ ngân hàng</div>
+          </div>
+        </div>
+
+        <div className="mt-5 flex flex-col-reverse justify-between gap-2 border-t border-zinc-100 pt-4 sm:flex-row">
+          <div>
+            {existing ? (
+              <button type="button" disabled={isSaving} onClick={onDelete} className="inline-flex w-full items-center justify-center gap-1 rounded-md border border-rose-300 px-4 py-2 text-sm font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-60 sm:w-auto">
+                <Trash2 className="h-4 w-4" /> Xóa danh sách
+              </button>
+            ) : null}
+          </div>
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={onClose} className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium">Hủy</button>
+            <button disabled={isSaving || !hasSingleCampaign || !totalMatches} className="inline-flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50">
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Lưu danh sách
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function newEditorRowKey() {
+  return `entry-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function parseMoneyInputValue(value: string) {
+  const parsed = Number(value.replace(/[^\d.-]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function OpeningBalanceModal({

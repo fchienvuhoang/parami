@@ -32,7 +32,13 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
     }
 
     return data.transactions.filter((transaction) => {
-      return normalizeTransferText(transaction.description).includes(normalizedQuery);
+      const searchableText = [
+        transaction.description,
+        transaction.groupedContribution?.title,
+        transaction.groupedContribution?.note,
+        ...(transaction.groupedContribution?.entries.flatMap((entry) => [entry.donorName, entry.note]) ?? []),
+      ].filter(Boolean).join(" ");
+      return normalizeTransferText(searchableText).includes(normalizedQuery);
     }).sort(compareTransactionNewestFirst);
   }, [data.transactions, normalizedQuery]);
 
@@ -241,6 +247,7 @@ function PublicTransactionCard({ transaction }: { transaction: PublicCampaignTra
       <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-zinc-800">
         {redactPhoneNumbers(transaction.description)}
       </p>
+      <GroupedContributionDetails transaction={transaction} />
     </article>
   );
 }
@@ -255,6 +262,7 @@ function PublicTransactionRow({ transaction }: { transaction: PublicCampaignTran
         <div className="whitespace-pre-wrap break-words font-medium text-zinc-900">
           {redactPhoneNumbers(transaction.description)}
         </div>
+        <GroupedContributionDetails transaction={transaction} />
       </td>
       <td className="whitespace-nowrap px-3 py-2 align-top">
         <span className={`inline-flex rounded-md border px-2 py-1 text-xs font-medium ${meta.className}`}>
@@ -272,6 +280,60 @@ function EmptyState() {
   return <div className="px-3 py-10 text-center text-sm text-zinc-500">Không có giao dịch phù hợp.</div>;
 }
 
+function GroupedContributionDetails({ transaction }: { transaction: PublicCampaignTransaction }) {
+  const batch = transaction.groupedContribution;
+  if (!batch) return null;
+  const total = batch.entries.reduce((sum, entry) => sum + entry.amount, 0);
+
+  return (
+    <details open className="group mt-3 overflow-hidden rounded-md border border-emerald-200 bg-emerald-50/50">
+      <summary className="cursor-pointer list-none px-3 py-2 marker:hidden">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div className="text-sm font-semibold text-emerald-900">{batch.title}</div>
+            <div className="mt-0.5 text-xs text-emerald-700">
+              {batch.entries.length.toLocaleString("vi-VN")} khoản hùn phước · Bấm để xem chi tiết
+            </div>
+          </div>
+          <span className="whitespace-nowrap text-xs font-semibold tabular-nums text-emerald-800">{money(total)}</span>
+        </div>
+      </summary>
+      <div className="border-t border-emerald-200 bg-white">
+        {batch.note ? <p className="px-3 py-2 text-xs leading-5 text-zinc-600">{batch.note}</p> : null}
+        <div className="border-t border-zinc-100">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 bg-zinc-50 text-xs uppercase text-zinc-500">
+              <tr>
+                <th className="w-12 px-3 py-2 text-center">STT</th>
+                <th className="px-3 py-2 text-left">Người hùn phước</th>
+                <th className="px-3 py-2 text-right">Số tiền</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100">
+              {batch.entries.map((entry, index) => (
+                <tr key={entry.id}>
+                  <td className="px-3 py-2 text-center tabular-nums text-zinc-500">{index + 1}</td>
+                  <td className="px-3 py-2 text-zinc-800">
+                    <div className="font-medium">{redactPhoneNumbers(entry.donorName)}</div>
+                    {entry.note ? <div className="mt-0.5 text-xs text-zinc-500">{redactPhoneNumbers(entry.note)}</div> : null}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-right font-semibold tabular-nums text-zinc-900">{money(entry.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="border-t border-emerald-200 bg-emerald-50">
+              <tr>
+                <td colSpan={2} className="px-3 py-2 text-right text-xs font-semibold uppercase text-emerald-800">Tổng danh sách</td>
+                <td className="whitespace-nowrap px-3 py-2 text-right font-semibold tabular-nums text-emerald-900">{money(total)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </details>
+  );
+}
+
 function HeroStat({ label, value, tone }: { label: string; value: string; tone: "rose" | "amber" }) {
   const color = tone === "rose" ? "text-rose-700" : "text-amber-700";
 
@@ -286,7 +348,7 @@ function HeroStat({ label, value, tone }: { label: string; value: string; tone: 
 function transactionMeta(transaction: PublicCampaignTransaction) {
   if (transaction.creditAmount > 0) {
     return {
-      label: "Hùn phước",
+      label: transaction.groupedContribution ? "Hùn phước nộp gộp" : "Hùn phước",
       amount: transaction.creditAmount,
       className: "border-emerald-200 bg-emerald-50 text-emerald-700",
       amountClassName: "text-zinc-950",

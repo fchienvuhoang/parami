@@ -4,7 +4,10 @@ import { apiError } from "@/lib/api";
 import { getWorkspaceFromRequest } from "@/lib/auth";
 import { getPrisma } from "@/lib/prisma";
 import { makeCampaignCode, normalizeTransferText } from "@/lib/text";
-import { invalidatePublicCampaignCache, warmPublicCampaignCaches } from "@/lib/public-campaign";
+import {
+  invalidatePublicCampaignDefinitionCache,
+  warmPublicCampaignDefinitionCaches,
+} from "@/lib/public-campaign";
 
 const campaignSchema = z.object({
   code: z.string().min(1),
@@ -75,8 +78,8 @@ export async function POST(request: Request) {
         keywords: true,
       },
     });
-    const affectedCodes = invalidatePublicCampaignCache([campaign.code]);
-    await warmPublicCampaignCaches(affectedCodes);
+    const affectedCodes = invalidatePublicCampaignDefinitionCache([campaign.code]);
+    await warmPublicCampaignDefinitionCaches(affectedCodes);
 
     return NextResponse.json(campaign, { status: 201 });
   } catch (error) {

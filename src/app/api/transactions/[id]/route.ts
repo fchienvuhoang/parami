@@ -31,6 +31,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         debitAmount: true,
         campaign: { select: { code: true } },
         allocations: { select: { campaign: { select: { code: true } } } },
+        groupedContribution: { select: { id: true } },
       },
     });
     if (!previousTransaction) return NextResponse.json({ error: "Không tìm thấy giao dịch." }, { status: 404 });
@@ -41,6 +42,13 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const campaignCount = await prisma.campaign.count({ where: { id: { in: requestedCampaignIds }, workspace } });
     if (campaignCount !== requestedCampaignIds.length) {
       return NextResponse.json({ error: "Có thiện pháp không thuộc tài khoản này." }, { status: 400 });
+    }
+
+    if (previousTransaction.groupedContribution && (body.allocations || !body.campaignId)) {
+      return NextResponse.json(
+        { error: "Hãy xóa danh sách hùn phước nộp gộp trước khi bỏ gán hoặc chia giao dịch." },
+        { status: 409 },
+      );
     }
 
     if (body.allocations) {

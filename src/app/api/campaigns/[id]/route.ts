@@ -5,7 +5,10 @@ import { apiError } from "@/lib/api";
 import { getWorkspaceFromRequest } from "@/lib/auth";
 import { getPrisma } from "@/lib/prisma";
 import { makeCampaignCode, normalizeTransferText } from "@/lib/text";
-import { invalidatePublicCampaignCache, warmPublicCampaignCaches } from "@/lib/public-campaign";
+import {
+  invalidatePublicCampaignDefinitionCache,
+  warmPublicCampaignDefinitionCaches,
+} from "@/lib/public-campaign";
 
 const updateCampaignSchema = z.object({
   code: z.string().min(1),
@@ -73,8 +76,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         },
       });
     });
-    const affectedCodes = invalidatePublicCampaignCache([previousCampaign?.code, campaign.code]);
-    await warmPublicCampaignCaches(affectedCodes);
+    const affectedCodes = invalidatePublicCampaignDefinitionCache([previousCampaign?.code, campaign.code]);
+    await warmPublicCampaignDefinitionCaches(affectedCodes);
 
     return NextResponse.json(campaign);
   } catch (error) {
@@ -115,7 +118,8 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
     }
 
     await prisma.campaign.delete({ where: { id } });
-    invalidatePublicCampaignCache([campaign.code]);
+    invalidatePublicCampaignDefinitionCache([campaign.code]);
+    await warmPublicCampaignDefinitionCaches([]);
 
     return NextResponse.json({ ok: true });
   } catch (error) {

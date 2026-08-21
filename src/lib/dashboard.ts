@@ -97,6 +97,17 @@ export type TransactionSummary = {
     amount: number;
     campaign: { id: string; code: string; name: string };
   }[];
+  groupedContribution: {
+    id: string;
+    title: string;
+    note: string | null;
+    entries: {
+      id: string;
+      donorName: string;
+      amount: number;
+      note: string | null;
+    }[];
+  } | null;
 };
 
 export async function getDashboardState(workspace: BankWorkspace): Promise<DashboardState> {
@@ -199,6 +210,9 @@ export async function getDashboardState(workspace: BankWorkspace): Promise<Dashb
             include: { campaign: { select: { id: true, code: true, name: true } } },
             orderBy: { createdAt: "asc" },
           },
+          groupedContribution: {
+            include: { entries: { orderBy: { sortOrder: "asc" } } },
+          },
         },
         orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }, { statementRow: "desc" }],
         take: 50,
@@ -221,6 +235,9 @@ export async function getDashboardState(workspace: BankWorkspace): Promise<Dashb
           allocations: {
             include: { campaign: { select: { id: true, code: true, name: true } } },
             orderBy: { createdAt: "asc" },
+          },
+          groupedContribution: {
+            include: { entries: { orderBy: { sortOrder: "asc" } } },
           },
         },
         orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }, { statementRow: "desc" }],
@@ -353,6 +370,19 @@ export async function getDashboardState(workspace: BankWorkspace): Promise<Dashb
             amount: decimalToNumber(allocation.amount),
             campaign: allocation.campaign,
           })),
+          groupedContribution: transaction.groupedContribution
+            ? {
+                id: transaction.groupedContribution.id,
+                title: transaction.groupedContribution.title,
+                note: transaction.groupedContribution.note,
+                entries: transaction.groupedContribution.entries.map((entry) => ({
+                  id: entry.id,
+                  donorName: entry.donorName,
+                  amount: decimalToNumber(entry.amount),
+                  note: entry.note,
+                })),
+              }
+            : null,
         })),
         debitTransactions: debitTransactions.map((transaction) => ({
           id: transaction.id,
@@ -373,6 +403,19 @@ export async function getDashboardState(workspace: BankWorkspace): Promise<Dashb
             amount: decimalToNumber(allocation.amount),
             campaign: allocation.campaign,
           })),
+          groupedContribution: transaction.groupedContribution
+            ? {
+                id: transaction.groupedContribution.id,
+                title: transaction.groupedContribution.title,
+                note: transaction.groupedContribution.note,
+                entries: transaction.groupedContribution.entries.map((entry) => ({
+                  id: entry.id,
+                  donorName: entry.donorName,
+                  amount: decimalToNumber(entry.amount),
+                  note: entry.note,
+                })),
+              }
+            : null,
         })),
         latestImport: latestImport
           ? {

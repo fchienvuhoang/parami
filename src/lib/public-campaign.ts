@@ -38,6 +38,16 @@ export type PublicCampaignTransaction = {
   description: string;
   debitAmount: number;
   creditAmount: number;
+  groupedContribution: {
+    title: string;
+    note: string | null;
+    entries: {
+      id: string;
+      donorName: string;
+      amount: number;
+      note: string | null;
+    }[];
+  } | null;
 };
 
 export type PublicCampaignListItem = {
@@ -87,8 +97,12 @@ export async function getPublicCampaignMeta(code: string) {
   });
 }
 
-function publicCampaignTag(code: string) {
-  return `public-campaign:${makeCampaignCode(code)}`;
+function publicCampaignMetaTag(code: string) {
+  return `public-campaign-meta:${makeCampaignCode(code)}`;
+}
+
+function publicCampaignDataTag(code: string) {
+  return `public-campaign-data:${makeCampaignCode(code)}`;
 }
 
 export function getCachedPublicCampaignMeta(code: string) {
@@ -96,7 +110,7 @@ export function getCachedPublicCampaignMeta(code: string) {
   return unstable_cache(
     () => getPublicCampaignMeta(normalizedCode),
     ["public-campaign-meta", normalizedCode],
-    { revalidate: false, tags: [publicCampaignTag(normalizedCode)] },
+    { revalidate: false, tags: [publicCampaignMetaTag(normalizedCode)] },
   )();
 }
 
@@ -120,7 +134,7 @@ export async function getPublicCampaignData(code: string): Promise<PublicCampaig
 
   const hasMonthlyExpenseStatistics = MONTHLY_EXPENSE_CAMPAIGN_CODES.has(campaign.code);
 
-  const [transactionSums, transactions, expenseTransactions, openingAllocation, allocatedTransactions] = await Promise.all([
+  const [transactionSums, transactions, expenseTransactions, openingAllocation, allocatedTransactions, groupedContributionBatches] = await Promise.all([
     prisma.bankTransaction.aggregate({
       where: {
         campaignId: campaign.id,
@@ -143,6 +157,16 @@ export async function getPublicCampaignData(code: string): Promise<PublicCampaig
         description: true,
         debitAmount: true,
         creditAmount: true,
+        groupedContribution: {
+          select: {
+            title: true,
+            note: true,
+            entries: {
+              select: { id: true, donorName: true, amount: true, note: true },
+              orderBy: { sortOrder: "asc" },
+            },
+          },
+        },
       },
       orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }, { statementRow: "desc" }],
       take: 1000,
@@ -183,6 +207,10 @@ export async function getPublicCampaignData(code: string): Promise<PublicCampaig
         },
       },
       orderBy: { transaction: { transactionDate: "desc" } },
+    }),
+    prisma.groupedContribution.findMany({
+      where: { transaction: { campaignId: campaign.id, creditAmount: { gt: 0 } } },
+      select: { _count: { select: { entries: true } } },
     }),
   ]);
 
@@ -251,7 +279,10 @@ export async function getPublicCampaignData(code: string): Promise<PublicCampaig
     income,
     expenses,
     balance: openingBalance + income - expenses,
-    transactionCount: transactionSums._count + allocatedTransactions.length,
+    transactionCount:
+      transactionSums._count
+      + allocatedTransactions.length
+      + groupedContributionBatches.reduce((sum, batch) => sum + batch._count.entries - 1, 0),
     monthlyExpenses: [...monthlyExpenseMap.values()].sort((left, right) => right.month.localeCompare(left.month)),
     transactions: [
       ...transactions.map((transaction) => ({
@@ -262,6 +293,18 @@ export async function getPublicCampaignData(code: string): Promise<PublicCampaig
       description: transaction.description,
       debitAmount: decimalToNumber(transaction.debitAmount),
       creditAmount: decimalToNumber(transaction.creditAmount),
+      groupedContribution: transaction.groupedContribution
+        ? {
+            title: transaction.groupedContribution.title,
+            note: transaction.groupedContribution.note,
+            entries: transaction.groupedContribution.entries.map((entry) => ({
+              id: entry.id,
+              donorName: entry.donorName,
+              amount: decimalToNumber(entry.amount),
+              note: entry.note,
+            })),
+          }
+        : null,
       })),
       ...allocatedTransactions.map(({ transaction, amount }) => ({
         id: `${transaction.id}-${campaign.id}`,
@@ -271,6 +314,7 @@ export async function getPublicCampaignData(code: string): Promise<PublicCampaig
         description: transaction.description,
         debitAmount: decimalToNumber(transaction.debitAmount) > 0 ? decimalToNumber(amount) : 0,
         creditAmount: decimalToNumber(transaction.creditAmount) > 0 ? decimalToNumber(amount) : 0,
+        groupedContribution: null,
       })),
     ],
   };
@@ -291,8 +335,8 @@ export function getCachedPublicCampaignData(code: string) {
   const normalizedCode = makeCampaignCode(code);
   return unstable_cache(
     () => getPublicCampaignData(normalizedCode),
-    ["public-campaign-data-v5", normalizedCode],
-    { revalidate: false, tags: [publicCampaignTag(normalizedCode)] },
+    ["public-campaign-data-v7", normalizedCode],
+    { revalidate: false, tags: [publicCampaignDataTag(normalizedCode)] },
   )();
 }
 
@@ -302,19 +346,33 @@ export function invalidatePublicCampaignCache(codes: Iterable<string | null | un
   );
 
   for (const code of normalizedCodes) {
-    revalidateTag(publicCampaignTag(code), { expire: 0 });
+    revalidateTag(publicCampaignDataTag(code), { expire: 0 });
   }
-  revalidateTag(PUBLIC_CAMPAIGN_LIST_TAG, { expire: 0 });
 
   return [...normalizedCodes];
 }
 
+export function invalidatePublicCampaignDefinitionCache(codes: Iterable<string | null | undefined>) {
+  const normalizedCodes = invalidatePublicCampaignCache(codes);
+  for (const code of normalizedCodes) {
+    revalidateTag(publicCampaignMetaTag(code), { expire: 0 });
+  }
+  revalidateTag(PUBLIC_CAMPAIGN_LIST_TAG, { expire: 0 });
+  return normalizedCodes;
+}
+
 export async function warmPublicCampaignCaches(codes: Iterable<string>) {
   const normalizedCodes = [...new Set([...codes].map(makeCampaignCode))];
-  await Promise.all(
-    normalizedCodes.flatMap((code) => [
+  await Promise.all(normalizedCodes.map((code) => getCachedPublicCampaignData(code)));
+}
+
+export async function warmPublicCampaignDefinitionCaches(codes: Iterable<string>) {
+  const normalizedCodes = [...new Set([...codes].map(makeCampaignCode))];
+  await Promise.all([
+    getCachedPublicCampaignList(),
+    ...normalizedCodes.flatMap((code) => [
       getCachedPublicCampaignMeta(code),
       getCachedPublicCampaignData(code),
     ]),
-  );
+  ]);
 }

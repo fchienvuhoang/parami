@@ -146,12 +146,38 @@ model BankTransaction {
   updatedAt             DateTime             @updatedAt
   workspace             BankWorkspace        @default(VIB)
   allocations           TransactionAllocation[]
+  groupedContribution   GroupedContribution?
 
   @@index([transactionDate, statementRow, createdAt])
   @@index([campaignId, transactionDate])
   @@index([campaignId, transactionDate, createdAt, statementRow])
   @@index([classificationStatus])
   @@index([creditAmount])
+}
+
+model GroupedContribution {
+  id            String              @id @default(cuid())
+  transactionId String              @unique
+  transaction   BankTransaction     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  title         String              @default("Danh sách hùn phước nộp gộp")
+  note          String?             @db.Text
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  entries       ContributionEntry[]
+}
+
+model ContributionEntry {
+  id        String              @id @default(cuid())
+  batchId   String
+  batch     GroupedContribution @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  donorName String
+  amount    Decimal             @db.Decimal(18, 2)
+  note      String?             @db.Text
+  sortOrder Int                 @default(0)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  @@index([batchId, sortOrder])
 }
 
 model TransactionAllocation {

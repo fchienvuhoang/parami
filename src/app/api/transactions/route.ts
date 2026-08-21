@@ -45,6 +45,10 @@ export async function GET(request: Request) {
               { campaign: { code: { contains: input.query, mode: "insensitive" } } },
               { allocations: { some: { campaign: { name: { contains: input.query, mode: "insensitive" } } } } },
               { allocations: { some: { campaign: { code: { contains: input.query, mode: "insensitive" } } } } },
+              { groupedContribution: { title: { contains: input.query, mode: "insensitive" } } },
+              { groupedContribution: { note: { contains: input.query, mode: "insensitive" } } },
+              { groupedContribution: { entries: { some: { donorName: { contains: input.query, mode: "insensitive" } } } } },
+              { groupedContribution: { entries: { some: { note: { contains: input.query, mode: "insensitive" } } } } },
             ],
           }
         : {}),
@@ -62,6 +66,9 @@ export async function GET(request: Request) {
         allocations: {
           include: { campaign: { select: { id: true, code: true, name: true } } },
           orderBy: { createdAt: "asc" },
+        },
+        groupedContribution: {
+          include: { entries: { orderBy: { sortOrder: "asc" } } },
         },
       },
       orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }, { statementRow: "desc" }],
@@ -89,6 +96,19 @@ export async function GET(request: Request) {
           amount: decimalToNumber(allocation.amount),
           campaign: allocation.campaign,
         })),
+        groupedContribution: transaction.groupedContribution
+          ? {
+              id: transaction.groupedContribution.id,
+              title: transaction.groupedContribution.title,
+              note: transaction.groupedContribution.note,
+              entries: transaction.groupedContribution.entries.map((entry) => ({
+                id: entry.id,
+                donorName: entry.donorName,
+                amount: decimalToNumber(entry.amount),
+                note: entry.note,
+              })),
+            }
+          : null,
       })),
       total,
       page,
