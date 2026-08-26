@@ -4,10 +4,7 @@ import { apiError } from "@/lib/api";
 import { getWorkspaceFromRequest } from "@/lib/auth";
 import { getPrisma } from "@/lib/prisma";
 import { decimalToNumber, toPrismaDecimal } from "@/lib/money";
-import {
-  invalidatePublicCampaignCache,
-  warmPublicCampaignCaches,
-} from "@/lib/public-campaign";
+import { invalidatePublicCampaignCache } from "@/lib/public-campaign";
 
 const updateTransactionSchema = z.object({
   campaignId: z.string().optional().nullable(),
@@ -89,12 +86,11 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       select: { code: true },
     });
 
-    const affectedCodes = invalidatePublicCampaignCache([
+    invalidatePublicCampaignCache([
       previousTransaction?.campaign?.code,
       ...previousTransaction.allocations.map((item) => item.campaign.code),
       ...affectedCampaigns.map((item) => item.code),
     ]);
-    await warmPublicCampaignCaches(affectedCodes);
 
     return NextResponse.json(transaction);
   } catch (error) {
