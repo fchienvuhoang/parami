@@ -122,6 +122,9 @@ function Dashboard({ data }: { data: DashboardData }) {
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [transactionError, setTransactionError] = useState<string | null>(null);
   const [transactionReloadKey, setTransactionReloadKey] = useState(0);
+  const [selectedTransactionIds, setSelectedTransactionIds] = useState<string[]>([]);
+  const [bulkCampaignId, setBulkCampaignId] = useState("");
+  const [isBulkAssigning, setIsBulkAssigning] = useState(false);
 
   useEffect(() => {
     if (mainTab !== "transactions") return;
@@ -144,6 +147,7 @@ function Dashboard({ data }: { data: DashboardData }) {
         });
         const result = await readJson<TransactionListResponse>(response);
         setTransactionRows(result.transactions);
+        setSelectedTransactionIds([]);
         setTransactionTotal(result.total);
         setTransactionTotalPages(result.totalPages);
         if (result.page !== transactionPage) setTransactionPage(result.page);
@@ -338,6 +342,43 @@ function Dashboard({ data }: { data: DashboardData }) {
       setError(getErrorMessage(caught));
     } finally {
       setPendingTransactionId(null);
+    }
+  }
+
+  async function bulkAssignTransactions() {
+    if (!selectedTransactionIds.length || !bulkCampaignId) return;
+    const campaign = data.campaigns.find((item) => item.id === bulkCampaignId);
+    if (!campaign) {
+      setError("Không tìm thấy thiện pháp đã chọn.");
+      return;
+    }
+    const confirmed = window.confirm(
+      `Gán thủ công ${selectedTransactionIds.length} giao dịch vào thiện pháp “${campaign.code}”?`,
+    );
+    if (!confirmed) return;
+
+    setError(null);
+    setMessage(null);
+    setIsBulkAssigning(true);
+    try {
+      const result = await readJson<{ updatedCount: number }>(
+        await fetch("/api/transactions/bulk-assign", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            transactionIds: selectedTransactionIds,
+            campaignId: bulkCampaignId,
+          }),
+        }),
+      );
+      setMessage(`Đã gán thủ công ${result.updatedCount} giao dịch vào thiện pháp ${campaign.code}.`);
+      setSelectedTransactionIds([]);
+      setTransactionReloadKey((value) => value + 1);
+      router.refresh();
+    } catch (caught) {
+      setError(getErrorMessage(caught));
+    } finally {
+      setIsBulkAssigning(false);
     }
   }
 
@@ -715,6 +756,42 @@ function Dashboard({ data }: { data: DashboardData }) {
                 ))}
               </div>
 
+              <div className="mt-4 flex flex-col gap-3 rounded-md border border-indigo-200 bg-indigo-50 p-3 sm:flex-row sm:items-center">
+                <span className="text-sm font-medium text-indigo-950">
+                  Đã chọn {selectedTransactionIds.length.toLocaleString("vi-VN")} giao dịch
+                </span>
+                <select
+                  value={bulkCampaignId}
+                  onChange={(event) => setBulkCampaignId(event.target.value)}
+                  disabled={isBulkAssigning}
+                  className="min-w-56 rounded-md border border-indigo-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 disabled:opacity-60"
+                >
+                  <option value="">Chọn thiện pháp để gán</option>
+                  {data.campaigns.map((campaign) => (
+                    <option key={campaign.id} value={campaign.id}>{campaign.code}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={bulkAssignTransactions}
+                  disabled={!selectedTransactionIds.length || !bulkCampaignId || isBulkAssigning}
+                  className="inline-flex items-center justify-center gap-2 rounded-md bg-indigo-700 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isBulkAssigning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Tags className="h-4 w-4" />}
+                  Gán hàng loạt
+                </button>
+                {selectedTransactionIds.length ? (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTransactionIds([])}
+                    disabled={isBulkAssigning}
+                    className="text-sm font-medium text-indigo-700 hover:text-indigo-900 disabled:opacity-50"
+                  >
+                    Bỏ chọn
+                  </button>
+                ) : null}
+              </div>
+
               {transactionError ? (
                 <div className="mt-4 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
                   {transactionError}
@@ -726,6 +803,9 @@ function Dashboard({ data }: { data: DashboardData }) {
                   transactions={transactionRows}
                   campaigns={data.campaigns}
                   pendingTransactionId={pendingTransactionId}
+                  selectedTransactionIds={selectedTransactionIds}
+                  isBulkAssigning={isBulkAssigning}
+                  onSelectionChange={setSelectedTransactionIds}
                   onAssign={assignTransaction}
                   onSplit={setSplitTransaction}
                   onContribution={setContributionTransaction}
@@ -826,6 +906,9 @@ function TransactionTable({
   transactions,
   campaigns,
   pendingTransactionId,
+  selectedTransactionIds,
+  isBulkAssigning,
+  onSelectionChange,
   onAssign,
   onSplit,
   onContribution,
@@ -833,16 +916,48 @@ function TransactionTable({
   transactions: TransactionSummary[];
   campaigns: CampaignSummary[];
   pendingTransactionId: string | null;
+  selectedTransactionIds: string[];
+  isBulkAssigning: boolean;
+  onSelectionChange: (transactionIds: string[]) => void;
   onAssign: (transactionId: string, campaignId: string | null) => void;
   onSplit: (transaction: TransactionSummary) => void;
   onContribution: (transaction: TransactionSummary) => void;
 }) {
+  const selectedIds = new Set(selectedTransactionIds);
+  const allVisibleSelected = transactions.length > 0 && transactions.every((transaction) => selectedIds.has(transaction.id));
+
+  function toggleAllVisible() {
+    if (allVisibleSelected) {
+      onSelectionChange(selectedTransactionIds.filter((id) => !transactions.some((transaction) => transaction.id === id)));
+      return;
+    }
+    onSelectionChange([...new Set([...selectedTransactionIds, ...transactions.map((transaction) => transaction.id)])]);
+  }
+
+  function toggleTransaction(transactionId: string) {
+    onSelectionChange(
+      selectedIds.has(transactionId)
+        ? selectedTransactionIds.filter((id) => id !== transactionId)
+        : [...selectedTransactionIds, transactionId],
+    );
+  }
+
   return (
     <div className="mt-4 overflow-hidden rounded-md border border-zinc-200">
       <div className="max-h-[620px] overflow-auto">
         <table className="w-full min-w-[980px] text-left text-sm">
           <thead className="sticky top-0 bg-zinc-50 text-xs uppercase text-zinc-500">
             <tr>
+              <th className="w-10 px-3 py-2">
+                <input
+                  type="checkbox"
+                  aria-label="Chọn tất cả giao dịch trên trang"
+                  checked={allVisibleSelected}
+                  disabled={!transactions.length || isBulkAssigning}
+                  onChange={toggleAllVisible}
+                  className="h-4 w-4 rounded border-zinc-300 text-indigo-700 focus:ring-indigo-600"
+                />
+              </th>
               <th className="px-3 py-2">Ngày</th>
               <th className="min-w-[36rem] px-3 py-2">Nội dung chuyển khoản</th>
               <th className="px-3 py-2">Chi tiết</th>
@@ -856,8 +971,22 @@ function TransactionTable({
             {transactions.map((transaction) => (
               <tr
                 key={transaction.id}
-                className={transaction.campaign || transaction.allocations.length ? "hover:bg-zinc-50" : "bg-rose-50/50 hover:bg-rose-50"}
+                className={selectedIds.has(transaction.id)
+                  ? "bg-indigo-50 hover:bg-indigo-100/70"
+                  : transaction.campaign || transaction.allocations.length
+                    ? "hover:bg-zinc-50"
+                    : "bg-rose-50/50 hover:bg-rose-50"}
               >
+                <td className="px-3 py-2">
+                  <input
+                    type="checkbox"
+                    aria-label={`Chọn giao dịch ${transaction.transactionCode}`}
+                    checked={selectedIds.has(transaction.id)}
+                    disabled={isBulkAssigning}
+                    onChange={() => toggleTransaction(transaction.id)}
+                    className="h-4 w-4 rounded border-zinc-300 text-indigo-700 focus:ring-indigo-600"
+                  />
+                </td>
                 <td className="whitespace-nowrap px-3 py-2 tabular-nums text-zinc-600">{transactionDateTime(transaction.transactionDate)}</td>
                 <td className="min-w-[36rem] px-3 py-2 align-top">
                   <div className="whitespace-pre-wrap break-words font-medium text-zinc-900">
@@ -898,7 +1027,7 @@ function TransactionTable({
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-2"><select
                     value={transaction.campaign?.id ?? ""}
-                    disabled={pendingTransactionId === transaction.id}
+                    disabled={pendingTransactionId === transaction.id || isBulkAssigning}
                     onChange={(event) => onAssign(transaction.id, event.target.value || null)}
                     className="w-44 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
                   >
@@ -909,14 +1038,15 @@ function TransactionTable({
                       </option>
                     ))}
                   </select>
-                  <button type="button" onClick={() => onSplit(transaction)} className="rounded-md border border-violet-300 bg-white px-2 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-50">
+                  <button type="button" disabled={isBulkAssigning} onClick={() => onSplit(transaction)} className="rounded-md border border-violet-300 bg-white px-2 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-50 disabled:opacity-50">
                     Chia
                   </button>
                   {transaction.creditAmount > 0 ? (
                     <button
                       type="button"
+                      disabled={isBulkAssigning}
                       onClick={() => onContribution(transaction)}
-                      className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-emerald-300 bg-white px-2 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
+                      className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-emerald-300 bg-white px-2 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
                     >
                       <ListPlus className="h-3.5 w-3.5" />
                       {transaction.groupedContribution
@@ -929,7 +1059,7 @@ function TransactionTable({
             ))}
             {transactions.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-3 py-10 text-center text-zinc-500">
+                <td colSpan={8} className="px-3 py-10 text-center text-zinc-500">
                   Không có giao dịch phù hợp.
                 </td>
               </tr>
