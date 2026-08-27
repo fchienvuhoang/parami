@@ -111,6 +111,7 @@ function Dashboard({ data }: { data: DashboardData }) {
   const [campaignModal, setCampaignModal] = useState<CampaignModalState | null>(null);
   const [splitTransaction, setSplitTransaction] = useState<TransactionSummary | null>(null);
   const [contributionTransaction, setContributionTransaction] = useState<TransactionSummary | null>(null);
+  const [detailTransaction, setDetailTransaction] = useState<TransactionSummary | null>(null);
   const [showSystemSettings, setShowSystemSettings] = useState(false);
   const [isSavingOpeningBalance, setIsSavingOpeningBalance] = useState(false);
   const [transactionRows, setTransactionRows] = useState(() => data.transactions.slice(0, 50));
@@ -807,6 +808,7 @@ function Dashboard({ data }: { data: DashboardData }) {
                   isBulkAssigning={isBulkAssigning}
                   onSelectionChange={setSelectedTransactionIds}
                   onAssign={assignTransaction}
+                  onDetail={setDetailTransaction}
                   onSplit={setSplitTransaction}
                   onContribution={setContributionTransaction}
                 />
@@ -887,6 +889,12 @@ function Dashboard({ data }: { data: DashboardData }) {
             onSubmit={splitTransactionAcrossCampaigns}
           />
         ) : null}
+        {detailTransaction ? (
+          <TransactionDetailModal
+            transaction={detailTransaction}
+            onClose={() => setDetailTransaction(null)}
+          />
+        ) : null}
         {contributionTransaction ? (
           <GroupedContributionModal
             transaction={contributionTransaction}
@@ -910,6 +918,7 @@ function TransactionTable({
   isBulkAssigning,
   onSelectionChange,
   onAssign,
+  onDetail,
   onSplit,
   onContribution,
 }: {
@@ -920,6 +929,7 @@ function TransactionTable({
   isBulkAssigning: boolean;
   onSelectionChange: (transactionIds: string[]) => void;
   onAssign: (transactionId: string, campaignId: string | null) => void;
+  onDetail: (transaction: TransactionSummary) => void;
   onSplit: (transaction: TransactionSummary) => void;
   onContribution: (transaction: TransactionSummary) => void;
 }) {
@@ -996,8 +1006,15 @@ function TransactionTable({
                     {transaction.matchedKeyword ?? "Chưa có keyword khớp"}
                   </div>
                 </td>
-                <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-zinc-600">
-                  {transaction.transactionCode}
+                <td className="whitespace-nowrap px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => onDetail(transaction)}
+                    className="rounded-md border border-indigo-200 bg-white px-2.5 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-50"
+                    aria-label={`Xem chi tiết giao dịch ${transaction.transactionCode}`}
+                  >
+                    Xem
+                  </button>
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 text-right font-medium text-indigo-700">
                   {transaction.creditAmount > 0 ? money(transaction.creditAmount) : "-"}
@@ -1432,6 +1449,117 @@ function SplitTransactionModal({
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+function TransactionDetailModal({
+  transaction,
+  onClose,
+}: {
+  transaction: TransactionSummary;
+  onClose: () => void;
+}) {
+  const isCredit = transaction.creditAmount > 0;
+  const amount = isCredit ? transaction.creditAmount : transaction.debitAmount;
+  const campaignLabel = transaction.allocations.length > 0
+    ? transaction.allocations.map((allocation) => allocation.campaign.code).join(", ")
+    : transaction.campaign?.code ?? "Chưa phân loại";
+
+  useEffect(() => {
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-zinc-950/55 px-4 py-6"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="transaction-detail-title"
+        className="w-full max-w-[420px] overflow-hidden rounded-2xl bg-white shadow-2xl"
+      >
+        <div className="relative bg-gradient-to-br from-indigo-700 to-violet-700 px-6 pb-8 pt-6 text-center text-white">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Đóng chi tiết giao dịch"
+            className="absolute right-4 top-4 rounded-full bg-white/10 p-1.5 text-white hover:bg-white/20"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-white/15">
+            <CheckCircle2 className="h-6 w-6" />
+          </div>
+          <p id="transaction-detail-title" className="mt-3 text-sm font-medium text-indigo-100">
+            Chi tiết giao dịch
+          </p>
+          <p className="mt-1 text-3xl font-bold tracking-tight">{money(amount)}</p>
+          <span className="mt-3 inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-medium">
+            {isCredit ? "Tiền vào" : "Tiền ra"}
+          </span>
+        </div>
+
+        <div className="px-6 py-5">
+          <dl className="space-y-4 text-sm">
+            <DetailRow label="Thời gian" value={transactionDateTime(transaction.transactionDate)} />
+            <DetailRow label="Mã giao dịch" value={transaction.transactionCode} mono />
+            <DetailRow label="Nội dung" value={transaction.description} stacked />
+            <DetailRow label="Thiện pháp" value={campaignLabel} />
+            {transaction.balanceAfter !== null ? (
+              <DetailRow label="Số dư sau GD" value={money(transaction.balanceAfter)} />
+            ) : null}
+          </dl>
+
+          {transaction.allocations.length > 0 ? (
+            <div className="mt-5 border-t border-dashed border-zinc-200 pt-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">Phân bổ</p>
+              <div className="space-y-2">
+                {transaction.allocations.map((allocation) => (
+                  <div key={allocation.campaignId} className="flex items-center justify-between gap-4 text-sm">
+                    <span className="text-zinc-600">{allocation.campaign.code}</span>
+                    <span className="font-semibold text-zinc-900">{money(allocation.amount)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <p className="mt-5 border-t border-dashed border-zinc-200 pt-4 text-center text-[11px] text-zinc-400">
+            Ảnh đối soát giao dịch • Parami
+          </p>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function DetailRow({
+  label,
+  value,
+  mono = false,
+  stacked = false,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  stacked?: boolean;
+}) {
+  return (
+    <div className={stacked ? "space-y-1.5" : "flex items-start justify-between gap-5"}>
+      <dt className="shrink-0 text-zinc-500">{label}</dt>
+      <dd className={`${stacked ? "break-words text-left leading-6" : "break-all text-right"} font-medium text-zinc-900 ${mono ? "font-mono text-xs" : ""}`}>
+        {value}
+      </dd>
     </div>
   );
 }
