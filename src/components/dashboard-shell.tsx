@@ -1511,13 +1511,10 @@ function TransactionDetailModal({
 
         <div className="px-6 py-5">
           <dl className="space-y-4 text-sm">
-            <DetailRow label="Thời gian" value={transactionDateTime(transaction.transactionDate)} />
+            <DetailRow label="Ngày giao dịch" value={dateOnly(transaction.transactionDate)} />
             <DetailRow label="Mã giao dịch" value={transaction.transactionCode} mono />
             <DetailRow label="Nội dung" value={transaction.description} stacked />
             <DetailRow label="Thiện pháp" value={campaignLabel} />
-            {transaction.balanceAfter !== null ? (
-              <DetailRow label="Số dư sau GD" value={money(transaction.balanceAfter)} />
-            ) : null}
           </dl>
 
           {transaction.allocations.length > 0 ? (
