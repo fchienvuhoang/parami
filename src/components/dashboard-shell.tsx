@@ -1514,7 +1514,7 @@ function TransactionDetailModal({
           <dl className="space-y-4 text-sm">
             <DetailRow label="Ngày giao dịch" value={dateOnly(transaction.transactionDate)} />
             <DetailRow label="Mã giao dịch" value={transaction.transactionCode} mono />
-            <DetailRow label="Nội dung" value={transaction.description} stacked />
+            <DetailRow label="Nội dung" value={transaction.description} stacked highlighted />
             <DetailRow label="Thiện pháp" value={campaignLabel} />
           </dl>
 
@@ -1546,12 +1546,25 @@ function DetailRow({
   value,
   mono = false,
   stacked = false,
+  highlighted = false,
 }: {
   label: string;
   value: string;
   mono?: boolean;
   stacked?: boolean;
+  highlighted?: boolean;
 }) {
+  if (highlighted) {
+    return (
+      <div className="rounded-xl border-2 border-amber-500/45 bg-white/80 px-4 py-3 shadow-md shadow-amber-950/10 ring-1 ring-white/70">
+        <dt className="text-[11px] font-bold uppercase tracking-[0.14em] text-amber-800">{label}</dt>
+        <dd className="mt-2 whitespace-pre-wrap break-words text-left text-base font-bold leading-7 text-amber-950">
+          {value}
+        </dd>
+      </div>
+    );
+  }
+
   return (
     <div className={stacked ? "space-y-1.5" : "flex items-start justify-between gap-5"}>
       <dt className="shrink-0 text-zinc-500">{label}</dt>
