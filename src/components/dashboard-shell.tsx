@@ -1486,9 +1486,10 @@ function TransactionDetailModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="transaction-detail-title"
-        className="w-full max-w-[420px] overflow-hidden rounded-2xl bg-white shadow-2xl"
+        className="w-full max-w-[420px] overflow-hidden rounded-2xl bg-cover bg-top shadow-2xl"
+        style={{ backgroundImage: "url('/transaction-devas-bg-v2.png')" }}
       >
-        <div className="relative bg-gradient-to-br from-indigo-700 to-violet-700 px-6 pb-8 pt-6 text-center text-white">
+        <div className="relative bg-gradient-to-br from-amber-950/85 via-amber-800/75 to-orange-900/80 px-6 pb-8 pt-6 text-center text-white backdrop-blur-[1px]">
           <button
             type="button"
             onClick={onClose}
@@ -1500,7 +1501,7 @@ function TransactionDetailModal({
           <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-white/15">
             <CheckCircle2 className="h-6 w-6" />
           </div>
-          <p id="transaction-detail-title" className="mt-3 text-sm font-medium text-indigo-100">
+          <p id="transaction-detail-title" className="mt-3 text-sm font-medium text-amber-100">
             Chi tiết giao dịch
           </p>
           <p className="mt-1 text-3xl font-bold tracking-tight">{money(amount)}</p>
@@ -1509,7 +1510,7 @@ function TransactionDetailModal({
           </span>
         </div>
 
-        <div className="px-6 py-5">
+        <div className="bg-white/82 px-6 py-5 backdrop-blur-[2px]">
           <dl className="space-y-4 text-sm">
             <DetailRow label="Ngày giao dịch" value={dateOnly(transaction.transactionDate)} />
             <DetailRow label="Mã giao dịch" value={transaction.transactionCode} mono />
