@@ -34,6 +34,7 @@ export default function RootLayout({
           as="image"
           type="image/jpeg"
         />
+        <link rel="preload" href="/parami-logo.png" as="image" type="image/png" />
       </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

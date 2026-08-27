@@ -25,6 +25,7 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type React from "react";
@@ -1516,9 +1517,13 @@ function TransactionDetailModal({
           >
             <X className="h-5 w-5" />
           </button>
-          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-white/65 text-amber-900 shadow-sm backdrop-blur-[1px]">
-            <CheckCircle2 className="h-6 w-6" />
-          </div>
+          <Image
+            src="/parami-logo.png"
+            alt="Logo Pāramī Group"
+            width={72}
+            height={72}
+            className="mx-auto h-16 w-16 rounded-full border-2 border-white/80 object-cover shadow-lg shadow-amber-950/20"
+          />
           <p id="transaction-detail-title" className="mt-3 text-sm font-semibold text-amber-950 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]">
             Chi tiết giao dịch
           </p>

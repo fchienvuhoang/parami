@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Download, Eye, HeartHandshake, Loader2, Search, Sparkles, X } from "lucide-react";
+import { Download, Eye, HeartHandshake, Loader2, Search, Sparkles, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { downloadElementAsPng } from "@/lib/download-image";
@@ -435,9 +435,13 @@ function PublicTransactionDetailModal({
           >
             <X className="h-5 w-5" />
           </button>
-          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-white/65 text-amber-900 shadow-sm backdrop-blur-[1px]">
-            <CheckCircle2 className="h-6 w-6" />
-          </div>
+          <Image
+            src="/parami-logo.png"
+            alt="Logo Pāramī Group"
+            width={72}
+            height={72}
+            className="mx-auto h-16 w-16 rounded-full border-2 border-white/80 object-cover shadow-lg shadow-amber-950/20"
+          />
           <p id="public-transaction-detail-title" className="mt-3 text-sm font-semibold text-amber-950 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]">
             Chi tiết giao dịch
           </p>
