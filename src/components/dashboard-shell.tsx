@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Download,
   ExternalLink,
   FileSpreadsheet,
   LogOut,
@@ -25,7 +26,7 @@ import {
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type React from "react";
 import type {
   CampaignSummary,
@@ -33,6 +34,7 @@ import type {
   DashboardState,
   TransactionSummary,
 } from "@/lib/dashboard";
+import { downloadElementAsPng } from "@/lib/download-image";
 import { splitKeywords } from "@/lib/text";
 
 type Props = {
@@ -1462,6 +1464,8 @@ function TransactionDetailModal({
 }) {
   const isCredit = transaction.creditAmount > 0;
   const amount = isCredit ? transaction.creditAmount : transaction.debitAmount;
+  const modalRef = useRef<HTMLElement>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
   const campaignLabel = transaction.allocations.length > 0
     ? transaction.allocations.map((allocation) => allocation.campaign.code).join(", ")
     : transaction.campaign?.code ?? "Chưa phân loại";
@@ -1475,6 +1479,18 @@ function TransactionDetailModal({
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [onClose]);
 
+  async function downloadImage() {
+    if (!modalRef.current || isDownloading) return;
+    setIsDownloading(true);
+    try {
+      await downloadElementAsPng(modalRef.current, `giao-dich-${transaction.transactionCode}`);
+    } catch {
+      window.alert("Không thể tạo ảnh giao dịch. Vui lòng thử lại.");
+    } finally {
+      setIsDownloading(false);
+    }
+  }
+
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-zinc-950/55 px-4 py-6"
@@ -1483,6 +1499,7 @@ function TransactionDetailModal({
       }}
     >
       <section
+        ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="transaction-detail-title"
@@ -1493,6 +1510,7 @@ function TransactionDetailModal({
           <button
             type="button"
             onClick={onClose}
+            data-export-exclude="true"
             aria-label="Đóng chi tiết giao dịch"
             className="absolute right-4 top-4 rounded-full bg-amber-950/20 p-1.5 text-white shadow-sm hover:bg-amber-950/30"
           >
@@ -1535,6 +1553,17 @@ function TransactionDetailModal({
           <p className="mt-5 border-t border-dashed border-zinc-200 pt-4 text-center text-[11px] text-zinc-400">
             Ảnh đối soát giao dịch • Parami
           </p>
+          <div data-export-exclude="true" className="mt-4 flex justify-center">
+            <button
+              type="button"
+              onClick={downloadImage}
+              disabled={isDownloading}
+              className="inline-flex items-center gap-2 rounded-full bg-amber-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-950 disabled:opacity-60"
+            >
+              {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {isDownloading ? "Đang tạo ảnh..." : "Tải ảnh"}
+            </button>
+          </div>
         </div>
       </section>
     </div>

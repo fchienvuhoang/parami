@@ -1,8 +1,9 @@
 "use client";
 
-import { CheckCircle2, Eye, HeartHandshake, Search, Sparkles, X } from "lucide-react";
+import { CheckCircle2, Download, Eye, HeartHandshake, Loader2, Search, Sparkles, X } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { downloadElementAsPng } from "@/lib/download-image";
 import type { PublicCampaignData, PublicCampaignTransaction } from "@/lib/public-campaign";
 import { redactPhoneNumbers } from "@/lib/privacy";
 import { normalizeTransferText } from "@/lib/text";
@@ -386,6 +387,8 @@ function PublicTransactionDetailModal({
 }) {
   const batch = transaction.groupedContribution;
   const meta = transactionMeta(transaction);
+  const modalRef = useRef<HTMLElement>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     function closeOnEscape(event: KeyboardEvent) {
@@ -395,6 +398,18 @@ function PublicTransactionDetailModal({
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [onClose]);
 
+  async function downloadImage() {
+    if (!modalRef.current || isDownloading) return;
+    setIsDownloading(true);
+    try {
+      await downloadElementAsPng(modalRef.current, `giao-dich-${transaction.transactionCode}`);
+    } catch {
+      window.alert("Không thể tạo ảnh giao dịch. Vui lòng thử lại.");
+    } finally {
+      setIsDownloading(false);
+    }
+  }
+
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-zinc-950/55 px-4 py-6"
@@ -403,6 +418,7 @@ function PublicTransactionDetailModal({
       }}
     >
       <section
+        ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="public-transaction-detail-title"
@@ -413,6 +429,7 @@ function PublicTransactionDetailModal({
           <button
             type="button"
             onClick={onClose}
+            data-export-exclude="true"
             aria-label="Đóng chi tiết giao dịch"
             className="absolute right-4 top-4 rounded-full bg-amber-950/20 p-1.5 text-white shadow-sm hover:bg-amber-950/30"
           >
@@ -464,6 +481,17 @@ function PublicTransactionDetailModal({
           <p className="mt-5 border-t border-dashed border-zinc-200 pt-4 text-center text-[11px] text-zinc-400">
             Ảnh đối soát giao dịch • Parami
           </p>
+          <div data-export-exclude="true" className="mt-4 flex justify-center">
+            <button
+              type="button"
+              onClick={downloadImage}
+              disabled={isDownloading}
+              className="inline-flex items-center gap-2 rounded-full bg-amber-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-950 disabled:opacity-60"
+            >
+              {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {isDownloading ? "Đang tạo ảnh..." : "Tải ảnh"}
+            </button>
+          </div>
         </div>
       </section>
     </div>
