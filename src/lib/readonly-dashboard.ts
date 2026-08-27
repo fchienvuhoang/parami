@@ -1,6 +1,6 @@
 import type { BankWorkspace } from "@prisma/client";
 import { decimalToNumber } from "@/lib/money";
-import { getPrisma } from "@/lib/prisma";
+import { getPrisma, retryTransientDatabaseRead } from "@/lib/prisma";
 
 export type ReadonlyWorkspaceSummary = {
   workspace: BankWorkspace;
@@ -25,7 +25,7 @@ export async function getReadonlyDashboardData(): Promise<ReadonlyWorkspaceSumma
   const prisma = getPrisma();
   const workspaces: BankWorkspace[] = ["VIB"];
 
-  return Promise.all(workspaces.map(async (workspace) => {
+  return retryTransientDatabaseRead(() => Promise.all(workspaces.map(async (workspace) => {
     const [account, campaigns, transactionSums, totalIncome, allocations] = await Promise.all([
       prisma.bankAccount.findFirst({
         where: { workspace },
@@ -86,5 +86,5 @@ export async function getReadonlyDashboardData(): Promise<ReadonlyWorkspaceSumma
         };
       }),
     };
-  }));
+  })));
 }

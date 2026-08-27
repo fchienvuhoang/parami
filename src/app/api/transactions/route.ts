@@ -4,7 +4,7 @@ import { z } from "zod";
 import { apiError } from "@/lib/api";
 import { getWorkspaceFromRequest } from "@/lib/auth";
 import { decimalToNumber } from "@/lib/money";
-import { getPrisma } from "@/lib/prisma";
+import { getPrisma, retryTransientDatabaseRead } from "@/lib/prisma";
 import { normalizeTransferText } from "@/lib/text";
 
 export const runtime = "nodejs";
@@ -54,26 +54,29 @@ export async function GET(request: Request) {
         : {}),
     };
 
-    const total = await prisma.bankTransaction.count({ where });
-    const totalPages = Math.max(1, Math.ceil(total / input.pageSize));
-    const page = Math.min(input.page, totalPages);
-    const transactions = await prisma.bankTransaction.findMany({
-      where,
-      include: {
-        campaign: {
-          select: { id: true, code: true, name: true },
+    const { total, totalPages, page, transactions } = await retryTransientDatabaseRead(async () => {
+      const totalRows = await prisma.bankTransaction.count({ where });
+      const pages = Math.max(1, Math.ceil(totalRows / input.pageSize));
+      const currentPage = Math.min(input.page, pages);
+      const rows = await prisma.bankTransaction.findMany({
+        where,
+        include: {
+          campaign: {
+            select: { id: true, code: true, name: true },
+          },
+          allocations: {
+            include: { campaign: { select: { id: true, code: true, name: true } } },
+            orderBy: { createdAt: "asc" },
+          },
+          groupedContribution: {
+            include: { entries: { orderBy: { sortOrder: "asc" } } },
+          },
         },
-        allocations: {
-          include: { campaign: { select: { id: true, code: true, name: true } } },
-          orderBy: { createdAt: "asc" },
-        },
-        groupedContribution: {
-          include: { entries: { orderBy: { sortOrder: "asc" } } },
-        },
-      },
-      orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }, { statementRow: "desc" }],
-      skip: (page - 1) * input.pageSize,
-      take: input.pageSize,
+        orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }, { statementRow: "desc" }],
+        skip: (currentPage - 1) * input.pageSize,
+        take: input.pageSize,
+      });
+      return { total: totalRows, totalPages: pages, page: currentPage, transactions: rows };
     });
 
     return NextResponse.json({

@@ -1,6 +1,11 @@
 import { decimalToNumber } from "@/lib/money";
 import type { BankWorkspace } from "@prisma/client";
-import { DatabaseNotConfiguredError, getPrisma } from "@/lib/prisma";
+import {
+  DatabaseNotConfiguredError,
+  getPrisma,
+  isTransientDatabaseError,
+  retryTransientDatabaseRead,
+} from "@/lib/prisma";
 
 export type DashboardState =
   | {
@@ -111,6 +116,18 @@ export type TransactionSummary = {
 };
 
 export async function getDashboardState(workspace: BankWorkspace): Promise<DashboardState> {
+  try {
+    return await retryTransientDatabaseRead(() => loadDashboardState(workspace));
+  } catch (error) {
+    return {
+      ok: false,
+      reason: "DATABASE_ERROR",
+      message: error instanceof Error ? error.message : "Không đọc được dữ liệu dashboard.",
+    };
+  }
+}
+
+async function loadDashboardState(workspace: BankWorkspace): Promise<DashboardState> {
   try {
     const prisma = getPrisma();
 
@@ -439,6 +456,7 @@ export async function getDashboardState(workspace: BankWorkspace): Promise<Dashb
       },
     };
   } catch (error) {
+    if (isTransientDatabaseError(error)) throw error;
     if (error instanceof DatabaseNotConfiguredError) {
       return {
         ok: false,
