@@ -36,6 +36,7 @@ export type PublicCampaignTransaction = {
   createdAt: string;
   statementRow: number | null;
   description: string;
+  transactionCode: string;
   debitAmount: number;
   creditAmount: number;
   groupedContribution: {
@@ -155,6 +156,7 @@ export async function getPublicCampaignData(code: string): Promise<PublicCampaig
         createdAt: true,
         statementRow: true,
         description: true,
+        transactionCode: true,
         debitAmount: true,
         creditAmount: true,
         groupedContribution: {
@@ -201,6 +203,7 @@ export async function getPublicCampaignData(code: string): Promise<PublicCampaig
             createdAt: true,
             statementRow: true,
             description: true,
+            transactionCode: true,
             debitAmount: true,
             creditAmount: true,
           },
@@ -291,6 +294,7 @@ export async function getPublicCampaignData(code: string): Promise<PublicCampaig
       createdAt: transaction.createdAt.toISOString(),
       statementRow: transaction.statementRow,
       description: transaction.description,
+      transactionCode: transaction.transactionCode,
       debitAmount: decimalToNumber(transaction.debitAmount),
       creditAmount: decimalToNumber(transaction.creditAmount),
       groupedContribution: transaction.groupedContribution
@@ -312,6 +316,7 @@ export async function getPublicCampaignData(code: string): Promise<PublicCampaig
         createdAt: transaction.createdAt.toISOString(),
         statementRow: transaction.statementRow,
         description: transaction.description,
+        transactionCode: transaction.transactionCode,
         debitAmount: decimalToNumber(transaction.debitAmount) > 0 ? decimalToNumber(amount) : 0,
         creditAmount: decimalToNumber(transaction.creditAmount) > 0 ? decimalToNumber(amount) : 0,
         groupedContribution: null,
@@ -335,7 +340,7 @@ export function getCachedPublicCampaignData(code: string) {
   const normalizedCode = makeCampaignCode(code);
   return unstable_cache(
     () => getPublicCampaignData(normalizedCode),
-    ["public-campaign-data-v8", normalizedCode],
+    ["public-campaign-data-v9", normalizedCode],
     { revalidate: false, tags: [publicCampaignDataTag(normalizedCode)] },
   )();
 }

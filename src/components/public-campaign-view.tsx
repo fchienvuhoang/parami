@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, HeartHandshake, Search, Sparkles, X } from "lucide-react";
+import { CheckCircle2, Eye, HeartHandshake, Search, Sparkles, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import type { PublicCampaignData, PublicCampaignTransaction } from "@/lib/public-campaign";
@@ -262,6 +262,7 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
       {detailTransaction ? (
         <PublicTransactionDetailModal
           transaction={detailTransaction}
+          campaignCode={data.code}
           onClose={() => setDetailTransaction(null)}
         />
       ) : null}
@@ -376,13 +377,14 @@ function TransactionDetailButton({
 
 function PublicTransactionDetailModal({
   transaction,
+  campaignCode,
   onClose,
 }: {
   transaction: PublicCampaignTransaction;
+  campaignCode: string;
   onClose: () => void;
 }) {
   const batch = transaction.groupedContribution;
-  const total = batch?.entries.reduce((sum, entry) => sum + entry.amount, 0) ?? 0;
   const meta = transactionMeta(transaction);
 
   useEffect(() => {
@@ -395,7 +397,7 @@ function PublicTransactionDetailModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-emerald-950/55 px-3 py-5 backdrop-blur-sm sm:px-6"
+      className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-zinc-950/55 px-4 py-6"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -404,104 +406,65 @@ function PublicTransactionDetailModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="public-transaction-detail-title"
-        className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/70 bg-white shadow-2xl shadow-emerald-950/25"
+        className="max-h-[92vh] w-full max-w-[420px] overflow-y-auto rounded-2xl bg-cover bg-top shadow-2xl"
+        style={{ backgroundImage: "url('/transaction-devas-bg-v2.png')" }}
       >
-        <header className="relative shrink-0 bg-gradient-to-br from-emerald-700 via-emerald-800 to-emerald-950 px-4 py-5 text-white sm:px-6">
+        <div className="relative bg-gradient-to-b from-amber-50/10 to-amber-100/25 px-6 pb-8 pt-6 text-center text-amber-950">
           <button
             type="button"
             onClick={onClose}
-            aria-label="Đóng chi tiết hùn phước"
-            className="absolute right-3 top-3 rounded-full bg-white/15 p-2 text-white transition hover:bg-white/25"
+            aria-label="Đóng chi tiết giao dịch"
+            className="absolute right-4 top-4 rounded-full bg-amber-950/20 p-1.5 text-white shadow-sm hover:bg-amber-950/30"
           >
             <X className="h-5 w-5" />
           </button>
-          <div className="flex items-center gap-3 pr-10">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/20">
-              <HeartHandshake className="h-6 w-6" />
-            </span>
-            <div className="min-w-0">
-              <p className="text-xs font-medium uppercase tracking-[0.16em] text-emerald-100">
-                {batch ? "Hùn phước nộp gộp" : "Thông tin đối soát"}
-              </p>
-              <h2 id="public-transaction-detail-title" className="mt-1 text-lg font-semibold leading-6">
-                {batch?.title || "Chi tiết giao dịch"}
-              </h2>
-            </div>
+          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-white/65 text-amber-900 shadow-sm backdrop-blur-[1px]">
+            <CheckCircle2 className="h-6 w-6" />
           </div>
-          <div className={`mt-4 grid gap-3 ${batch ? "grid-cols-2" : "grid-cols-1"}`}>
-            {batch ? (
-              <div className="rounded-xl bg-white/10 px-3 py-2.5 ring-1 ring-white/15">
-                <div className="text-[10px] font-medium uppercase tracking-wider text-emerald-100">Số phương danh</div>
-                <div className="mt-1 font-semibold">{batch.entries.length.toLocaleString("vi-VN")} người</div>
-              </div>
-            ) : null}
-            <div className="rounded-xl bg-white/10 px-3 py-2.5 text-right ring-1 ring-white/15">
-              <div className="text-[10px] font-medium uppercase tracking-wider text-emerald-100">
-                {batch ? "Tổng tịnh tài" : meta.label}
-              </div>
-              <div className="mt-1 whitespace-nowrap font-bold tabular-nums">{money(batch ? total : meta.amount)}</div>
-            </div>
-          </div>
-        </header>
-
-        <div className="min-h-0 flex-1 overflow-y-auto bg-[#fffdf9]">
-          <dl className="space-y-3 border-b border-emerald-100 bg-white px-4 py-4 text-sm sm:px-6">
-            <PublicDetailRow label="Ngày giao dịch" value={transactionDateTime(transaction.transactionDate)} />
-            <PublicDetailRow label="Loại" value={meta.label} />
-            <PublicDetailRow label="Nội dung" value={redactPhoneNumbers(transaction.description)} stacked />
-          </dl>
-          {batch?.note ? (
-            <p className="border-b border-amber-100 bg-amber-50/70 px-4 py-3 text-xs leading-5 text-stone-600 sm:px-6">
-              {redactPhoneNumbers(batch.note)}
-            </p>
-          ) : null}
-          {batch ? <div className="overflow-x-auto">
-          <table className="w-full table-fixed text-sm">
-            <thead className="bg-gradient-to-r from-emerald-100/80 via-emerald-50 to-amber-50 text-[11px] uppercase tracking-[0.12em] text-emerald-900">
-              <tr>
-                <th className="w-14 px-3 py-3 text-center font-semibold">STT</th>
-                <th className="px-2 py-3 text-left font-semibold sm:px-4">Phương danh thí chủ</th>
-                <th className="w-32 px-3 py-3 text-right font-semibold sm:w-40 sm:px-4">Tịnh tài</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-emerald-100/70 bg-white">
-              {batch.entries.map((entry, index) => (
-                <tr key={entry.id} className="odd:bg-white even:bg-emerald-50/25 transition-colors hover:bg-amber-50/60">
-                  <td className="px-3 py-2.5 text-center">
-                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-emerald-200 bg-white text-xs font-semibold tabular-nums text-emerald-700 shadow-sm">
-                      {index + 1}
-                    </span>
-                  </td>
-                  <td className="break-words px-2 py-2.5 text-zinc-800 sm:px-4">
-                    <div className="font-semibold leading-5 text-zinc-900">{redactPhoneNumbers(entry.donorName)}</div>
-                    {entry.note ? <div className="mt-1 text-xs leading-5 text-stone-500">{redactPhoneNumbers(entry.note)}</div> : null}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-right sm:px-4">
-                    <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold tabular-nums text-emerald-800 ring-1 ring-inset ring-emerald-100 sm:text-sm">
-                      {money(entry.amount)}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot className="border-t-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-amber-50">
-              <tr>
-                <td colSpan={2} className="px-3 py-3.5 text-right text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800">Tổng hùn phước</td>
-                <td className="whitespace-nowrap px-3 py-3.5 text-right text-sm font-bold tabular-nums text-emerald-950 sm:px-4 sm:text-base">{money(total)}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div> : null}
+          <p id="public-transaction-detail-title" className="mt-3 text-sm font-semibold text-amber-950 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]">
+            Chi tiết giao dịch
+          </p>
+          <p className="mt-1 text-3xl font-bold tracking-tight text-amber-950 drop-shadow-[0_1px_1px_rgba(255,255,255,0.95)]">
+            {money(meta.amount)}
+          </p>
+          <span className="mt-3 inline-flex rounded-full bg-white/65 px-3 py-1 text-xs font-semibold text-amber-950 shadow-sm backdrop-blur-[1px]">
+            {transaction.creditAmount > 0 ? "Tiền vào" : "Tiền ra"}
+          </span>
         </div>
-        <footer className="shrink-0 border-t border-emerald-100 bg-white px-4 py-3 text-center sm:px-6">
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800 sm:w-auto sm:min-w-32"
-          >
-            Đóng
-          </button>
-        </footer>
+
+        <div className="bg-amber-50/75 px-6 py-5">
+          <dl className="space-y-4 text-sm">
+            <PublicDetailRow label="Ngày giao dịch" value={transactionDateTime(transaction.transactionDate)} />
+            <PublicDetailRow label="Mã giao dịch" value={transaction.transactionCode} mono />
+            <PublicDetailRow label="Nội dung" value={redactPhoneNumbers(transaction.description)} stacked />
+            <PublicDetailRow label="Thiện pháp" value={campaignCode} />
+          </dl>
+
+          {batch ? (
+            <div className="mt-5 border-t border-dashed border-amber-900/15 pt-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-950/55">
+                {batch.title} · {batch.entries.length.toLocaleString("vi-VN")} người
+              </p>
+              {batch.note ? <p className="mt-2 text-xs leading-5 text-amber-950/65">{redactPhoneNumbers(batch.note)}</p> : null}
+              <div className="mt-3 space-y-2">
+                {batch.entries.map((entry, index) => (
+                  <div key={entry.id} className="flex items-start justify-between gap-4 rounded-lg bg-white/45 px-3 py-2 text-sm">
+                    <div className="min-w-0">
+                      <span className="mr-2 text-xs text-amber-950/45">{index + 1}.</span>
+                      <span className="break-words font-medium text-amber-950">{redactPhoneNumbers(entry.donorName)}</span>
+                      {entry.note ? <p className="mt-1 text-xs text-amber-950/55">{redactPhoneNumbers(entry.note)}</p> : null}
+                    </div>
+                    <span className="shrink-0 font-semibold tabular-nums text-amber-950">{money(entry.amount)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <p className="mt-5 border-t border-dashed border-zinc-200 pt-4 text-center text-[11px] text-zinc-400">
+            Ảnh đối soát giao dịch • Parami
+          </p>
+        </div>
       </section>
     </div>
   );
@@ -510,16 +473,18 @@ function PublicTransactionDetailModal({
 function PublicDetailRow({
   label,
   value,
+  mono = false,
   stacked = false,
 }: {
   label: string;
   value: string;
+  mono?: boolean;
   stacked?: boolean;
 }) {
   return (
     <div className={stacked ? "space-y-1.5" : "flex items-start justify-between gap-5"}>
-      <dt className="shrink-0 text-stone-500">{label}</dt>
-      <dd className={`${stacked ? "whitespace-pre-wrap break-words text-left leading-6" : "text-right"} font-semibold text-zinc-900`}>
+      <dt className="shrink-0 text-zinc-500">{label}</dt>
+      <dd className={`${stacked ? "whitespace-pre-wrap break-words text-left leading-6" : "break-all text-right"} font-medium text-zinc-900 ${mono ? "font-mono text-xs" : ""}`}>
         {value}
       </dd>
     </div>
