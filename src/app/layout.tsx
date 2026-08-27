@@ -27,6 +27,14 @@ export default function RootLayout({
       lang="vi"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <link
+          rel="preload"
+          href="/transaction-devas-bg-v2.jpg"
+          as="image"
+          type="image/jpeg"
+        />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

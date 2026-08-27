@@ -407,7 +407,7 @@ function PublicTransactionDetailModal({
         aria-modal="true"
         aria-labelledby="public-transaction-detail-title"
         className="max-h-[92vh] w-full max-w-[420px] overflow-y-auto rounded-2xl bg-cover bg-top shadow-2xl"
-        style={{ backgroundImage: "url('/transaction-devas-bg-v2.png')" }}
+        style={{ backgroundImage: "url('/transaction-devas-bg-v2.jpg')" }}
       >
         <div className="relative bg-gradient-to-b from-amber-50/10 to-amber-100/25 px-6 pb-8 pt-6 text-center text-amber-950">
           <button
