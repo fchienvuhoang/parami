@@ -23,7 +23,7 @@ const statusClassNames = {
 
 export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
   const [query, setQuery] = useState("");
-  const [groupedTransaction, setGroupedTransaction] = useState<PublicCampaignTransaction | null>(null);
+  const [detailTransaction, setDetailTransaction] = useState<PublicCampaignTransaction | null>(null);
   const normalizedQuery = normalizeTransferText(query);
   const showMonthlyExpenses = MONTHLY_EXPENSE_CAMPAIGN_CODES.has(data.code);
 
@@ -219,7 +219,7 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
                 key={transaction.id}
                 transaction={transaction}
                 index={index + 1}
-                onViewGrouped={() => setGroupedTransaction(transaction)}
+                onViewDetail={() => setDetailTransaction(transaction)}
               />
             ))}
             {filteredTransactions.length === 0 ? <EmptyState /> : null}
@@ -243,7 +243,7 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
                       key={transaction.id}
                       transaction={transaction}
                       index={index + 1}
-                      onViewGrouped={() => setGroupedTransaction(transaction)}
+                      onViewDetail={() => setDetailTransaction(transaction)}
                     />
                   ))}
                   {filteredTransactions.length === 0 ? (
@@ -259,10 +259,10 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
           </div>
         </section>
       </main>
-      {groupedTransaction?.groupedContribution ? (
-        <PublicGroupedContributionModal
-          transaction={groupedTransaction}
-          onClose={() => setGroupedTransaction(null)}
+      {detailTransaction ? (
+        <PublicTransactionDetailModal
+          transaction={detailTransaction}
+          onClose={() => setDetailTransaction(null)}
         />
       ) : null}
     </div>
@@ -272,11 +272,11 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
 function PublicTransactionCard({
   transaction,
   index,
-  onViewGrouped,
+  onViewDetail,
 }: {
   transaction: PublicCampaignTransaction;
   index: number;
-  onViewGrouped: () => void;
+  onViewDetail: () => void;
 }) {
   const meta = transactionMeta(transaction);
 
@@ -301,11 +301,9 @@ function PublicTransactionCard({
       <p className="whitespace-pre-wrap break-words border-t border-emerald-100 px-3 py-3 text-sm font-semibold leading-6 text-zinc-900">
         {redactPhoneNumbers(transaction.description)}
       </p>
-      {transaction.groupedContribution ? (
-        <div className="px-3 pb-3">
-          <GroupedContributionButton transaction={transaction} onClick={onViewGrouped} />
-        </div>
-      ) : null}
+      <div className="px-3 pb-3">
+        <TransactionDetailButton transaction={transaction} onClick={onViewDetail} />
+      </div>
     </article>
   );
 }
@@ -313,11 +311,11 @@ function PublicTransactionCard({
 function PublicTransactionRow({
   transaction,
   index,
-  onViewGrouped,
+  onViewDetail,
 }: {
   transaction: PublicCampaignTransaction;
   index: number;
-  onViewGrouped: () => void;
+  onViewDetail: () => void;
 }) {
   const meta = transactionMeta(transaction);
 
@@ -333,9 +331,7 @@ function PublicTransactionRow({
         <div className="whitespace-pre-wrap break-words font-semibold leading-6 text-zinc-900">
           {redactPhoneNumbers(transaction.description)}
         </div>
-        {transaction.groupedContribution ? (
-          <GroupedContributionButton transaction={transaction} onClick={onViewGrouped} />
-        ) : null}
+        <TransactionDetailButton transaction={transaction} onClick={onViewDetail} />
       </td>
       <td className="whitespace-nowrap px-3 py-3 align-top">
         <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${meta.className}`}>
@@ -355,7 +351,7 @@ function EmptyState() {
   return <div className="px-3 py-10 text-center text-sm text-zinc-500">Không có giao dịch phù hợp.</div>;
 }
 
-function GroupedContributionButton({
+function TransactionDetailButton({
   transaction,
   onClick,
 }: {
@@ -363,7 +359,6 @@ function GroupedContributionButton({
   onClick: () => void;
 }) {
   const batch = transaction.groupedContribution;
-  if (!batch) return null;
 
   return (
     <button
@@ -372,12 +367,14 @@ function GroupedContributionButton({
       className="mt-3 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-gradient-to-r from-emerald-50 to-amber-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 shadow-sm transition hover:border-emerald-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-200"
     >
       <Eye className="h-3.5 w-3.5" />
-      Xem chi tiết · {batch.entries.length.toLocaleString("vi-VN")} người
+      {batch
+        ? `Xem chi tiết · ${batch.entries.length.toLocaleString("vi-VN")} người`
+        : "Xem chi tiết"}
     </button>
   );
 }
 
-function PublicGroupedContributionModal({
+function PublicTransactionDetailModal({
   transaction,
   onClose,
 }: {
@@ -386,6 +383,7 @@ function PublicGroupedContributionModal({
 }) {
   const batch = transaction.groupedContribution;
   const total = batch?.entries.reduce((sum, entry) => sum + entry.amount, 0) ?? 0;
+  const meta = transactionMeta(transaction);
 
   useEffect(() => {
     function closeOnEscape(event: KeyboardEvent) {
@@ -394,8 +392,6 @@ function PublicGroupedContributionModal({
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [onClose]);
-
-  if (!batch) return null;
 
   return (
     <div
@@ -407,7 +403,7 @@ function PublicGroupedContributionModal({
       <section
         role="dialog"
         aria-modal="true"
-        aria-labelledby="public-grouped-contribution-title"
+        aria-labelledby="public-transaction-detail-title"
         className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/70 bg-white shadow-2xl shadow-emerald-950/25"
       >
         <header className="relative shrink-0 bg-gradient-to-br from-emerald-700 via-emerald-800 to-emerald-950 px-4 py-5 text-white sm:px-6">
@@ -424,31 +420,42 @@ function PublicGroupedContributionModal({
               <HeartHandshake className="h-6 w-6" />
             </span>
             <div className="min-w-0">
-              <p className="text-xs font-medium uppercase tracking-[0.16em] text-emerald-100">Hùn phước nộp gộp</p>
-              <h2 id="public-grouped-contribution-title" className="mt-1 text-lg font-semibold leading-6">
-                {batch.title || "Phương danh thí chủ"}
+              <p className="text-xs font-medium uppercase tracking-[0.16em] text-emerald-100">
+                {batch ? "Hùn phước nộp gộp" : "Thông tin đối soát"}
+              </p>
+              <h2 id="public-transaction-detail-title" className="mt-1 text-lg font-semibold leading-6">
+                {batch?.title || "Chi tiết giao dịch"}
               </h2>
             </div>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-xl bg-white/10 px-3 py-2.5 ring-1 ring-white/15">
-              <div className="text-[10px] font-medium uppercase tracking-wider text-emerald-100">Số phương danh</div>
-              <div className="mt-1 font-semibold">{batch.entries.length.toLocaleString("vi-VN")} người</div>
-            </div>
+          <div className={`mt-4 grid gap-3 ${batch ? "grid-cols-2" : "grid-cols-1"}`}>
+            {batch ? (
+              <div className="rounded-xl bg-white/10 px-3 py-2.5 ring-1 ring-white/15">
+                <div className="text-[10px] font-medium uppercase tracking-wider text-emerald-100">Số phương danh</div>
+                <div className="mt-1 font-semibold">{batch.entries.length.toLocaleString("vi-VN")} người</div>
+              </div>
+            ) : null}
             <div className="rounded-xl bg-white/10 px-3 py-2.5 text-right ring-1 ring-white/15">
-              <div className="text-[10px] font-medium uppercase tracking-wider text-emerald-100">Tổng tịnh tài</div>
-              <div className="mt-1 whitespace-nowrap font-bold tabular-nums">{money(total)}</div>
+              <div className="text-[10px] font-medium uppercase tracking-wider text-emerald-100">
+                {batch ? "Tổng tịnh tài" : meta.label}
+              </div>
+              <div className="mt-1 whitespace-nowrap font-bold tabular-nums">{money(batch ? total : meta.amount)}</div>
             </div>
           </div>
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto bg-[#fffdf9]">
-          {batch.note ? (
+          <dl className="space-y-3 border-b border-emerald-100 bg-white px-4 py-4 text-sm sm:px-6">
+            <PublicDetailRow label="Ngày giao dịch" value={transactionDateTime(transaction.transactionDate)} />
+            <PublicDetailRow label="Loại" value={meta.label} />
+            <PublicDetailRow label="Nội dung" value={redactPhoneNumbers(transaction.description)} stacked />
+          </dl>
+          {batch?.note ? (
             <p className="border-b border-amber-100 bg-amber-50/70 px-4 py-3 text-xs leading-5 text-stone-600 sm:px-6">
               {redactPhoneNumbers(batch.note)}
             </p>
           ) : null}
-          <div className="overflow-x-auto">
+          {batch ? <div className="overflow-x-auto">
           <table className="w-full table-fixed text-sm">
             <thead className="bg-gradient-to-r from-emerald-100/80 via-emerald-50 to-amber-50 text-[11px] uppercase tracking-[0.12em] text-emerald-900">
               <tr>
@@ -484,7 +491,7 @@ function PublicGroupedContributionModal({
               </tr>
             </tfoot>
           </table>
-        </div>
+        </div> : null}
         </div>
         <footer className="shrink-0 border-t border-emerald-100 bg-white px-4 py-3 text-center sm:px-6">
           <button
@@ -496,6 +503,25 @@ function PublicGroupedContributionModal({
           </button>
         </footer>
       </section>
+    </div>
+  );
+}
+
+function PublicDetailRow({
+  label,
+  value,
+  stacked = false,
+}: {
+  label: string;
+  value: string;
+  stacked?: boolean;
+}) {
+  return (
+    <div className={stacked ? "space-y-1.5" : "flex items-start justify-between gap-5"}>
+      <dt className="shrink-0 text-stone-500">{label}</dt>
+      <dd className={`${stacked ? "whitespace-pre-wrap break-words text-left leading-6" : "text-right"} font-semibold text-zinc-900`}>
+        {value}
+      </dd>
     </div>
   );
 }
