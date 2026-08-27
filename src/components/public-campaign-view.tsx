@@ -1,8 +1,8 @@
 "use client";
 
-import { HeartHandshake, Search, Sparkles } from "lucide-react";
+import { Eye, HeartHandshake, Search, Sparkles, X } from "lucide-react";
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { PublicCampaignData, PublicCampaignTransaction } from "@/lib/public-campaign";
 import { redactPhoneNumbers } from "@/lib/privacy";
 import { normalizeTransferText } from "@/lib/text";
@@ -23,6 +23,7 @@ const statusClassNames = {
 
 export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
   const [query, setQuery] = useState("");
+  const [groupedTransaction, setGroupedTransaction] = useState<PublicCampaignTransaction | null>(null);
   const normalizedQuery = normalizeTransferText(query);
   const showMonthlyExpenses = MONTHLY_EXPENSE_CAMPAIGN_CODES.has(data.code);
 
@@ -214,7 +215,12 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
 
           <div className="mt-4 space-y-2 md:hidden">
             {filteredTransactions.map((transaction, index) => (
-              <PublicTransactionCard key={transaction.id} transaction={transaction} index={index + 1} />
+              <PublicTransactionCard
+                key={transaction.id}
+                transaction={transaction}
+                index={index + 1}
+                onViewGrouped={() => setGroupedTransaction(transaction)}
+              />
             ))}
             {filteredTransactions.length === 0 ? <EmptyState /> : null}
           </div>
@@ -233,7 +239,12 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
                 </thead>
                 <tbody className="divide-y divide-emerald-100/70 bg-white">
                   {filteredTransactions.map((transaction, index) => (
-                    <PublicTransactionRow key={transaction.id} transaction={transaction} index={index + 1} />
+                    <PublicTransactionRow
+                      key={transaction.id}
+                      transaction={transaction}
+                      index={index + 1}
+                      onViewGrouped={() => setGroupedTransaction(transaction)}
+                    />
                   ))}
                   {filteredTransactions.length === 0 ? (
                     <tr>
@@ -248,11 +259,25 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
           </div>
         </section>
       </main>
+      {groupedTransaction?.groupedContribution ? (
+        <PublicGroupedContributionModal
+          transaction={groupedTransaction}
+          onClose={() => setGroupedTransaction(null)}
+        />
+      ) : null}
     </div>
   );
 }
 
-function PublicTransactionCard({ transaction, index }: { transaction: PublicCampaignTransaction; index: number }) {
+function PublicTransactionCard({
+  transaction,
+  index,
+  onViewGrouped,
+}: {
+  transaction: PublicCampaignTransaction;
+  index: number;
+  onViewGrouped: () => void;
+}) {
   const meta = transactionMeta(transaction);
 
   return (
@@ -278,14 +303,22 @@ function PublicTransactionCard({ transaction, index }: { transaction: PublicCamp
       </p>
       {transaction.groupedContribution ? (
         <div className="px-3 pb-3">
-          <GroupedContributionDetails transaction={transaction} />
+          <GroupedContributionButton transaction={transaction} onClick={onViewGrouped} />
         </div>
       ) : null}
     </article>
   );
 }
 
-function PublicTransactionRow({ transaction, index }: { transaction: PublicCampaignTransaction; index: number }) {
+function PublicTransactionRow({
+  transaction,
+  index,
+  onViewGrouped,
+}: {
+  transaction: PublicCampaignTransaction;
+  index: number;
+  onViewGrouped: () => void;
+}) {
   const meta = transactionMeta(transaction);
 
   return (
@@ -300,7 +333,9 @@ function PublicTransactionRow({ transaction, index }: { transaction: PublicCampa
         <div className="whitespace-pre-wrap break-words font-semibold leading-6 text-zinc-900">
           {redactPhoneNumbers(transaction.description)}
         </div>
-        <GroupedContributionDetails transaction={transaction} />
+        {transaction.groupedContribution ? (
+          <GroupedContributionButton transaction={transaction} onClick={onViewGrouped} />
+        ) : null}
       </td>
       <td className="whitespace-nowrap px-3 py-3 align-top">
         <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${meta.className}`}>
@@ -320,35 +355,100 @@ function EmptyState() {
   return <div className="px-3 py-10 text-center text-sm text-zinc-500">Không có giao dịch phù hợp.</div>;
 }
 
-function GroupedContributionDetails({ transaction }: { transaction: PublicCampaignTransaction }) {
+function GroupedContributionButton({
+  transaction,
+  onClick,
+}: {
+  transaction: PublicCampaignTransaction;
+  onClick: () => void;
+}) {
   const batch = transaction.groupedContribution;
   if (!batch) return null;
-  const total = batch.entries.reduce((sum, entry) => sum + entry.amount, 0);
 
   return (
-    <details open className="group mt-3 overflow-hidden rounded-xl border border-emerald-200 bg-white shadow-sm shadow-emerald-950/5">
-      <summary className="cursor-pointer list-none bg-gradient-to-r from-emerald-50 via-amber-50/60 to-rose-50 px-3 py-3 marker:hidden sm:px-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-white shadow-sm ring-4 ring-white/80">
-              <HeartHandshake className="h-5 w-5" />
+    <button
+      type="button"
+      onClick={onClick}
+      className="mt-3 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-gradient-to-r from-emerald-50 to-amber-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 shadow-sm transition hover:border-emerald-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-200"
+    >
+      <Eye className="h-3.5 w-3.5" />
+      Xem chi tiết · {batch.entries.length.toLocaleString("vi-VN")} người
+    </button>
+  );
+}
+
+function PublicGroupedContributionModal({
+  transaction,
+  onClose,
+}: {
+  transaction: PublicCampaignTransaction;
+  onClose: () => void;
+}) {
+  const batch = transaction.groupedContribution;
+  const total = batch?.entries.reduce((sum, entry) => sum + entry.amount, 0) ?? 0;
+
+  useEffect(() => {
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+
+  if (!batch) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-emerald-950/55 px-3 py-5 backdrop-blur-sm sm:px-6"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="public-grouped-contribution-title"
+        className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/70 bg-white shadow-2xl shadow-emerald-950/25"
+      >
+        <header className="relative shrink-0 bg-gradient-to-br from-emerald-700 via-emerald-800 to-emerald-950 px-4 py-5 text-white sm:px-6">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Đóng chi tiết hùn phước"
+            className="absolute right-3 top-3 rounded-full bg-white/15 p-2 text-white transition hover:bg-white/25"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <div className="flex items-center gap-3 pr-10">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/20">
+              <HeartHandshake className="h-6 w-6" />
             </span>
             <div className="min-w-0">
-              <div className="text-sm font-semibold tracking-tight text-emerald-950 sm:text-base">Phương danh thí chủ</div>
-              <div className="mt-0.5 text-xs text-emerald-700">
-                {batch.entries.length.toLocaleString("vi-VN")} thí chủ cùng hùn phước · Chạm để thu gọn hoặc mở
-              </div>
+              <p className="text-xs font-medium uppercase tracking-[0.16em] text-emerald-100">Hùn phước nộp gộp</p>
+              <h2 id="public-grouped-contribution-title" className="mt-1 text-lg font-semibold leading-6">
+                {batch.title || "Phương danh thí chủ"}
+              </h2>
             </div>
           </div>
-          <div className="rounded-lg border border-white/80 bg-white/80 px-3 py-2 text-right shadow-sm">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-stone-500">Tổng tịnh tài</div>
-            <div className="mt-0.5 whitespace-nowrap text-sm font-bold tabular-nums text-emerald-800">{money(total)}</div>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="rounded-xl bg-white/10 px-3 py-2.5 ring-1 ring-white/15">
+              <div className="text-[10px] font-medium uppercase tracking-wider text-emerald-100">Số phương danh</div>
+              <div className="mt-1 font-semibold">{batch.entries.length.toLocaleString("vi-VN")} người</div>
+            </div>
+            <div className="rounded-xl bg-white/10 px-3 py-2.5 text-right ring-1 ring-white/15">
+              <div className="text-[10px] font-medium uppercase tracking-wider text-emerald-100">Tổng tịnh tài</div>
+              <div className="mt-1 whitespace-nowrap font-bold tabular-nums">{money(total)}</div>
+            </div>
           </div>
-        </div>
-      </summary>
-      <div className="border-t border-emerald-200 bg-white">
-        {batch.note ? <p className="border-b border-amber-100 bg-amber-50/50 px-3 py-2 text-xs leading-5 text-stone-600 sm:px-4">{batch.note}</p> : null}
-        <div className="border-t border-emerald-100">
+        </header>
+
+        <div className="min-h-0 flex-1 overflow-y-auto bg-[#fffdf9]">
+          {batch.note ? (
+            <p className="border-b border-amber-100 bg-amber-50/70 px-4 py-3 text-xs leading-5 text-stone-600 sm:px-6">
+              {redactPhoneNumbers(batch.note)}
+            </p>
+          ) : null}
+          <div className="overflow-x-auto">
           <table className="w-full table-fixed text-sm">
             <thead className="bg-gradient-to-r from-emerald-100/80 via-emerald-50 to-amber-50 text-[11px] uppercase tracking-[0.12em] text-emerald-900">
               <tr>
@@ -385,8 +485,18 @@ function GroupedContributionDetails({ transaction }: { transaction: PublicCampai
             </tfoot>
           </table>
         </div>
-      </div>
-    </details>
+        </div>
+        <footer className="shrink-0 border-t border-emerald-100 bg-white px-4 py-3 text-center sm:px-6">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800 sm:w-auto sm:min-w-32"
+          >
+            Đóng
+          </button>
+        </footer>
+      </section>
+    </div>
   );
 }
 
