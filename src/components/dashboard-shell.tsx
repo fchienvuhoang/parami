@@ -1489,28 +1489,28 @@ function TransactionDetailModal({
         className="w-full max-w-[420px] overflow-hidden rounded-2xl bg-cover bg-top shadow-2xl"
         style={{ backgroundImage: "url('/transaction-devas-bg-v2.png')" }}
       >
-        <div className="relative bg-gradient-to-br from-amber-950/85 via-amber-800/75 to-orange-900/80 px-6 pb-8 pt-6 text-center text-white backdrop-blur-[1px]">
+        <div className="relative bg-gradient-to-b from-amber-50/10 to-amber-100/25 px-6 pb-8 pt-6 text-center text-amber-950">
           <button
             type="button"
             onClick={onClose}
             aria-label="Đóng chi tiết giao dịch"
-            className="absolute right-4 top-4 rounded-full bg-white/10 p-1.5 text-white hover:bg-white/20"
+            className="absolute right-4 top-4 rounded-full bg-amber-950/20 p-1.5 text-white shadow-sm hover:bg-amber-950/30"
           >
             <X className="h-5 w-5" />
           </button>
-          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-white/15">
+          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-white/65 text-amber-900 shadow-sm backdrop-blur-[1px]">
             <CheckCircle2 className="h-6 w-6" />
           </div>
-          <p id="transaction-detail-title" className="mt-3 text-sm font-medium text-amber-100">
+          <p id="transaction-detail-title" className="mt-3 text-sm font-semibold text-amber-950 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]">
             Chi tiết giao dịch
           </p>
-          <p className="mt-1 text-3xl font-bold tracking-tight">{money(amount)}</p>
-          <span className="mt-3 inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-medium">
+          <p className="mt-1 text-3xl font-bold tracking-tight text-amber-950 drop-shadow-[0_1px_1px_rgba(255,255,255,0.95)]">{money(amount)}</p>
+          <span className="mt-3 inline-flex rounded-full bg-white/65 px-3 py-1 text-xs font-semibold text-amber-950 shadow-sm backdrop-blur-[1px]">
             {isCredit ? "Tiền vào" : "Tiền ra"}
           </span>
         </div>
 
-        <div className="bg-white/82 px-6 py-5 backdrop-blur-[2px]">
+        <div className="bg-amber-50/75 px-6 py-5">
           <dl className="space-y-4 text-sm">
             <DetailRow label="Ngày giao dịch" value={dateOnly(transaction.transactionDate)} />
             <DetailRow label="Mã giao dịch" value={transaction.transactionCode} mono />
