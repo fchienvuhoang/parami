@@ -2269,13 +2269,17 @@ function campaignStatementText(campaign: CampaignSummary, publicUrl: string) {
 
   return `🏦 SAO KÊ ${campaignLabel}
 NGÀY ${date}
+
 CHÚNG CON KÍNH CHÚC QUÝ VỊ NGÀY MỚI THẬT AN VUI, HẠNH PHÚC.
 ✍️ CON XIN PHÉP GỬI SAO KÊ ${campaignLabel}:
+
 ${campaign.name.toLocaleUpperCase("vi-VN")}
 💰 Tính đến sáng ngày hôm nay ${date}, chúng ta ghi nhận được tổng số tịnh tài hùn phước cho thiện pháp là:
-${income}
+**${income}**
+
 👉 CHÚNG CON KÍNH MỜI QUÝ VỊ THEO DÕI MINH BẠCH THEO ĐƯỜNG LINK SAO KÊ DƯỚI ĐÂY:
-${publicUrl}
+[${publicUrl}](${publicUrl})
+
 🌺 Sādhu Sādhu Anumodana
 🌺 Idaṃ me puññaṃ nibbānassa paccayo hotu.
 🌺 Buddhasāsanaṃ Ciraṃ Tiṭṭhatu.`;
