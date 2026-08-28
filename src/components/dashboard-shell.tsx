@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Copy,
   Download,
   ExternalLink,
   FileSpreadsheet,
@@ -1871,6 +1872,23 @@ function CampaignModal({
 }) {
   const campaign = state.mode === "edit" ? state.campaign : null;
   const canDelete = campaign ? campaign.transactionCount === 0 : false;
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
+
+  const statementText = campaign
+    ? campaignStatementText(campaign, `https://parami-eight.vercel.app${publicCampaignPath(campaign.code)}`)
+    : "";
+
+  async function copyStatement() {
+    if (!statementText) return;
+
+    try {
+      await navigator.clipboard.writeText(statementText);
+      setCopyState("copied");
+      window.setTimeout(() => setCopyState("idle"), 2000);
+    } catch {
+      setCopyState("error");
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-zinc-950/40 px-4 py-8">
@@ -1913,6 +1931,31 @@ function CampaignModal({
             <X className="h-4 w-4" />
           </button>
         </div>
+
+        {campaign ? (
+          <section className="border-b border-zinc-200 bg-amber-50/60 px-5 py-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-zinc-950">Mẫu sao kê để chia sẻ</h3>
+                <p className="mt-1 text-xs text-zinc-500">Ngày, thiện pháp, tổng hùn phước và link được cập nhật tự động.</p>
+              </div>
+              <button
+                type="button"
+                onClick={copyStatement}
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-white hover:bg-amber-800"
+              >
+                {copyState === "copied" ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copyState === "copied" ? "Đã copy" : "Copy mẫu sao kê"}
+              </button>
+            </div>
+            <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-md border border-amber-200 bg-white p-3 font-sans text-xs leading-5 text-zinc-700">
+              {statementText}
+            </pre>
+            {copyState === "error" ? (
+              <p className="mt-2 text-xs text-rose-700">Không thể tự động copy. Bạn có thể chọn nội dung trong khung và copy thủ công.</p>
+            ) : null}
+          </section>
+        ) : null}
 
         <form
           key={campaign?.id ?? "create"}
@@ -2217,6 +2260,44 @@ function campaignPayloadFromForm(formData: FormData) {
 
 function publicCampaignPath(code: string) {
   return `/thien-phap/${encodeURIComponent(code)}`;
+}
+
+function campaignStatementText(campaign: CampaignSummary, publicUrl: string) {
+  const date = currentVietnamStatementDate();
+  const campaignLabel = campaignStatementLabel(campaign.code);
+  const income = `${campaign.income.toLocaleString("vi-VN")} VND`;
+
+  return `🏦 SAO KÊ ${campaignLabel}
+NGÀY ${date}
+CHÚNG CON KÍNH CHÚC QUÝ VỊ NGÀY MỚI THẬT AN VUI, HẠNH PHÚC.
+✍️ CON XIN PHÉP GỬI SAO KÊ ${campaignLabel}:
+${campaign.name.toLocaleUpperCase("vi-VN")}
+💰 Tính đến sáng ngày hôm nay ${date}, chúng ta ghi nhận được tổng số tịnh tài hùn phước cho thiện pháp là:
+${income}
+👉 CHÚNG CON KÍNH MỜI QUÝ VỊ THEO DÕI MINH BẠCH THEO ĐƯỜNG LINK SAO KÊ DƯỚI ĐÂY:
+${publicUrl}
+🌺 Sādhu Sādhu Anumodana
+🌺 Idaṃ me puññaṃ nibbānassa paccayo hotu.
+🌺 Buddhasāsanaṃ Ciraṃ Tiṭṭhatu.`;
+}
+
+function campaignStatementLabel(code: string) {
+  const normalizedCode = code.trim();
+  const numberedCampaign = normalizedCode.match(/^(?:tp[-_ ]?)?(\d+)$/i);
+  return numberedCampaign
+    ? `THIỆN PHÁP ${numberedCampaign[1]}`
+    : `THIỆN PHÁP ${normalizedCode.toLocaleUpperCase("vi-VN")}`;
+}
+
+function currentVietnamStatementDate() {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.day}.${values.month}.${values.year}`;
 }
 
 async function readJson<T>(response: Response): Promise<T> {
