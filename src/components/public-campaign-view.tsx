@@ -303,6 +303,11 @@ function PublicTransactionCard({
       <p className="whitespace-pre-wrap break-words border-t border-emerald-100 px-3 py-3 text-sm font-semibold leading-6 text-zinc-900">
         {redactPhoneNumbers(transaction.description)}
       </p>
+      {transaction.groupedContribution ? (
+        <div className="px-3 pb-1">
+          <GroupedContributionInline transaction={transaction} />
+        </div>
+      ) : null}
       <div className="px-3 pb-3">
         <TransactionDetailButton transaction={transaction} onClick={onViewDetail} />
       </div>
@@ -333,6 +338,7 @@ function PublicTransactionRow({
         <div className="whitespace-pre-wrap break-words font-semibold leading-6 text-zinc-900">
           {redactPhoneNumbers(transaction.description)}
         </div>
+        <GroupedContributionInline transaction={transaction} />
         <TransactionDetailButton transaction={transaction} onClick={onViewDetail} />
       </td>
       <td className="whitespace-nowrap px-3 py-3 align-top">
@@ -351,6 +357,57 @@ function PublicTransactionRow({
 
 function EmptyState() {
   return <div className="px-3 py-10 text-center text-sm text-zinc-500">Không có giao dịch phù hợp.</div>;
+}
+
+function GroupedContributionInline({ transaction }: { transaction: PublicCampaignTransaction }) {
+  const batch = transaction.groupedContribution;
+  if (!batch) return null;
+  const total = batch.entries.reduce((sum, entry) => sum + entry.amount, 0);
+
+  return (
+    <section className="mt-3 overflow-hidden rounded-xl border border-emerald-200 bg-white shadow-sm shadow-emerald-950/5">
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-gradient-to-r from-emerald-50 via-amber-50/60 to-rose-50 px-3 py-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-white shadow-sm ring-2 ring-white/80">
+            <HeartHandshake className="h-4 w-4" />
+          </span>
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-emerald-950">{batch.title}</h3>
+            <p className="mt-0.5 text-[11px] text-emerald-700">
+              {batch.entries.length.toLocaleString("vi-VN")} phương danh · Danh sách hùn gộp
+            </p>
+          </div>
+        </div>
+        <div className="rounded-lg border border-white/80 bg-white/80 px-2.5 py-1.5 text-right shadow-sm">
+          <div className="text-[9px] font-semibold uppercase tracking-wider text-stone-500">Tổng tịnh tài</div>
+          <div className="mt-0.5 whitespace-nowrap text-xs font-bold tabular-nums text-emerald-800 sm:text-sm">{money(total)}</div>
+        </div>
+      </div>
+
+      {batch.note ? (
+        <p className="border-t border-amber-100 bg-amber-50/40 px-3 py-2 text-xs leading-5 text-stone-600">
+          {redactPhoneNumbers(batch.note)}
+        </p>
+      ) : null}
+
+      <div className="divide-y divide-emerald-100/70 border-t border-emerald-100">
+        {batch.entries.map((entry, index) => (
+          <div key={entry.id} className="grid grid-cols-[2rem_minmax(0,1fr)_auto] items-start gap-2 px-3 py-2.5 odd:bg-white even:bg-emerald-50/25">
+            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-emerald-200 bg-white text-[11px] font-semibold tabular-nums text-emerald-700 shadow-sm">
+              {index + 1}
+            </span>
+            <div className="min-w-0">
+              <div className="break-words text-sm font-semibold leading-5 text-zinc-900">{redactPhoneNumbers(entry.donorName)}</div>
+              {entry.note ? <div className="mt-1 text-xs leading-5 text-stone-500">{redactPhoneNumbers(entry.note)}</div> : null}
+            </div>
+            <span className="whitespace-nowrap rounded-full bg-emerald-50 px-2 py-1 text-xs font-bold tabular-nums text-emerald-800 ring-1 ring-inset ring-emerald-100">
+              {money(entry.amount)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 function TransactionDetailButton({
