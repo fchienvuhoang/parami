@@ -1872,18 +1872,21 @@ function CampaignModal({
 }) {
   const campaign = state.mode === "edit" ? state.campaign : null;
   const canDelete = campaign ? campaign.transactionCount === 0 : false;
-  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
+  const [copyState, setCopyState] = useState<"idle" | "original-copied" | "localized-copied" | "error">("idle");
 
   const statementText = campaign
     ? campaignStatementText(campaign, `https://parami-eight.vercel.app${publicCampaignPath(campaign.code)}`)
     : "";
+  const localizedStatementText = campaign
+    ? campaignStatementText(campaign, `https://parami-eight.vercel.app${publicCampaignPath(campaign.code)}`, true)
+    : "";
 
-  async function copyStatement() {
-    if (!statementText) return;
+  async function copyStatement(text: string, copiedState: "original-copied" | "localized-copied") {
+    if (!text) return;
 
     try {
-      await navigator.clipboard.writeText(statementText);
-      setCopyState("copied");
+      await navigator.clipboard.writeText(text);
+      setCopyState(copiedState);
       window.setTimeout(() => setCopyState("idle"), 2000);
     } catch {
       setCopyState("error");
@@ -1934,23 +1937,44 @@ function CampaignModal({
 
         {campaign ? (
           <section className="border-b border-zinc-200 bg-amber-50/60 px-5 py-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-zinc-950">Mẫu sao kê để chia sẻ</h3>
-                <p className="mt-1 text-xs text-zinc-500">Ngày, thiện pháp, tổng hùn phước và link được cập nhật tự động.</p>
-              </div>
-              <button
-                type="button"
-                onClick={copyStatement}
-                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-white hover:bg-amber-800"
-              >
-                {copyState === "copied" ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                {copyState === "copied" ? "Đã copy" : "Copy mẫu sao kê"}
-              </button>
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-950">Mẫu sao kê để chia sẻ</h3>
+              <p className="mt-1 text-xs text-zinc-500">Ngày, thiện pháp, tổng hùn phước và link được cập nhật tự động.</p>
             </div>
-            <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-md border border-amber-200 bg-white p-3 font-sans text-xs leading-5 text-zinc-700">
-              {statementText}
-            </pre>
+            <div className="mt-3 space-y-4">
+              <div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-amber-900">Mẫu nguyên bản</h4>
+                  <button
+                    type="button"
+                    onClick={() => copyStatement(statementText, "original-copied")}
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-white hover:bg-amber-800"
+                  >
+                    {copyState === "original-copied" ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {copyState === "original-copied" ? "Đã copy" : "Copy mẫu nguyên bản"}
+                  </button>
+                </div>
+                <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-md border border-amber-200 bg-white p-3 font-sans text-xs leading-5 text-zinc-700">
+                  {statementText}
+                </pre>
+              </div>
+              <div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-amber-900">Mẫu Việt hóa</h4>
+                  <button
+                    type="button"
+                    onClick={() => copyStatement(localizedStatementText, "localized-copied")}
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-white hover:bg-amber-800"
+                  >
+                    {copyState === "localized-copied" ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {copyState === "localized-copied" ? "Đã copy" : "Copy mẫu Việt hóa"}
+                  </button>
+                </div>
+                <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-md border border-amber-200 bg-white p-3 font-sans text-xs leading-5 text-zinc-700">
+                  {localizedStatementText}
+                </pre>
+              </div>
+            </div>
             {copyState === "error" ? (
               <p className="mt-2 text-xs text-rose-700">Không thể tự động copy. Bạn có thể chọn nội dung trong khung và copy thủ công.</p>
             ) : null}
@@ -2262,7 +2286,7 @@ function publicCampaignPath(code: string) {
   return `/thien-phap/${encodeURIComponent(code)}`;
 }
 
-function campaignStatementText(campaign: CampaignSummary, publicUrl: string) {
+function campaignStatementText(campaign: CampaignSummary, publicUrl: string, includeVietnamese = false) {
   const date = currentVietnamStatementDate();
   const campaignLabel = campaignStatementLabel(campaign.code);
   const income = `${campaign.income.toLocaleString("vi-VN")} VNĐ`;
@@ -2281,9 +2305,9 @@ ${income}
 👉 CHÚNG CON KÍNH MỜI QUÝ VỊ THEO DÕI MINH BẠCH THEO ĐƯỜNG LINK SAO KÊ DƯỚI ĐÂY:
 ${publicUrl}
 
-🌺 Sādhu Sādhu Anumodana
-🌺 Idaṃ me puññaṃ nibbānassa paccayo hotu.
-🌺 Buddhasāsanaṃ Ciraṃ Tiṭṭhatu.`;
+🌺 Sādhu Sādhu Anumodana${includeVietnamese ? "\nLành thay! Lành thay! Xin tùy hỷ công đức." : ""}
+🌺 Idaṃ me puññaṃ nibbānassa paccayo hotu.${includeVietnamese ? "\nNguyện phước báu này của tôi là duyên đưa đến Niết-bàn." : ""}
+🌺 Buddhasāsanaṃ Ciraṃ Tiṭṭhatu.${includeVietnamese ? "\nNguyện Giáo pháp của Đức Phật được trường tồn lâu dài." : ""}`;
 }
 
 function campaignStatementLabel(code: string) {
