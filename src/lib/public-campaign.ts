@@ -18,6 +18,8 @@ export type PublicCampaignData = {
 
 export type PublicCampaignMonthlyExpense = {
   month: string;
+  incomeTransactionCount: number;
+  incomeAmount: number;
   transactionCount: number;
   amount: number;
   transactions: PublicCampaignExpenseTransaction[];
@@ -139,7 +141,7 @@ async function loadPublicCampaignData(code: string): Promise<PublicCampaignData 
 
   const hasMonthlyExpenseStatistics = MONTHLY_EXPENSE_CAMPAIGN_CODES.has(campaign.code);
 
-  const [transactionSums, transactions, expenseTransactions, openingAllocation, allocatedTransactions, groupedContributionBatches] = await Promise.all([
+  const [transactionSums, transactions, monthlyTransactions, openingAllocation, allocatedTransactions, groupedContributionBatches] = await Promise.all([
     prisma.bankTransaction.aggregate({
       where: {
         campaignId: campaign.id,
@@ -181,13 +183,17 @@ async function loadPublicCampaignData(code: string): Promise<PublicCampaignData 
       ? prisma.bankTransaction.findMany({
           where: {
             campaignId: campaign.id,
-            debitAmount: { gt: 0 },
+            OR: [
+              { creditAmount: { gt: 0 } },
+              { debitAmount: { gt: 0 } },
+            ],
           },
           select: {
             id: true,
             transactionDate: true,
             description: true,
             debitAmount: true,
+            creditAmount: true,
           },
           orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }, { statementRow: "desc" }],
         })
@@ -230,39 +236,64 @@ async function loadPublicCampaignData(code: string): Promise<PublicCampaignData 
   const openingBalance = decimalToNumber(openingAllocation?.amount);
   const monthlyExpenseMap = new Map<string, PublicCampaignMonthlyExpense>();
 
-  for (const transaction of expenseTransactions) {
+  for (const transaction of monthlyTransactions) {
     const month = transactionMonth(transaction.transactionDate);
     const current = monthlyExpenseMap.get(month) ?? {
       month,
+      incomeTransactionCount: 0,
+      incomeAmount: 0,
       transactionCount: 0,
       amount: 0,
       transactions: [],
     };
-    current.transactionCount += 1;
-    current.amount += decimalToNumber(transaction.debitAmount);
-    current.transactions.push({
-      id: transaction.id,
-      transactionDate: transaction.transactionDate.toISOString(),
-      description: transaction.description,
-      amount: decimalToNumber(transaction.debitAmount),
-    });
+    const creditAmount = decimalToNumber(transaction.creditAmount);
+    const debitAmount = decimalToNumber(transaction.debitAmount);
+    if (creditAmount > 0) {
+      current.incomeTransactionCount += 1;
+      current.incomeAmount += creditAmount;
+    }
+    if (debitAmount > 0) {
+      current.transactionCount += 1;
+      current.amount += debitAmount;
+      current.transactions.push({
+        id: transaction.id,
+        transactionDate: transaction.transactionDate.toISOString(),
+        description: transaction.description,
+        amount: debitAmount,
+      });
+    }
     monthlyExpenseMap.set(month, current);
   }
 
   for (const allocation of allocatedTransactions) {
-    if (decimalToNumber(allocation.transaction.debitAmount) <= 0) continue;
     const transaction = allocation.transaction;
+    const creditAmount = decimalToNumber(transaction.creditAmount);
+    const debitAmount = decimalToNumber(transaction.debitAmount);
+    if (creditAmount <= 0 && debitAmount <= 0) continue;
     const month = transactionMonth(transaction.transactionDate);
-    const current = monthlyExpenseMap.get(month) ?? { month, transactionCount: 0, amount: 0, transactions: [] };
+    const current = monthlyExpenseMap.get(month) ?? {
+      month,
+      incomeTransactionCount: 0,
+      incomeAmount: 0,
+      transactionCount: 0,
+      amount: 0,
+      transactions: [],
+    };
     const amount = decimalToNumber(allocation.amount);
-    current.transactionCount += 1;
-    current.amount += amount;
-    current.transactions.push({
-      id: `${transaction.id}-${campaign.id}`,
-      transactionDate: transaction.transactionDate.toISOString(),
-      description: transaction.description,
-      amount,
-    });
+    if (creditAmount > 0) {
+      current.incomeTransactionCount += 1;
+      current.incomeAmount += amount;
+    }
+    if (debitAmount > 0) {
+      current.transactionCount += 1;
+      current.amount += amount;
+      current.transactions.push({
+        id: `${transaction.id}-${campaign.id}`,
+        transactionDate: transaction.transactionDate.toISOString(),
+        description: transaction.description,
+        amount,
+      });
+    }
     monthlyExpenseMap.set(month, current);
   }
 
@@ -271,6 +302,8 @@ async function loadPublicCampaignData(code: string): Promise<PublicCampaignData 
     if (!monthlyExpenseMap.has(currentMonth)) {
       monthlyExpenseMap.set(currentMonth, {
         month: currentMonth,
+        incomeTransactionCount: 0,
+        incomeAmount: 0,
         transactionCount: 0,
         amount: 0,
         transactions: [],
@@ -344,7 +377,7 @@ export function getCachedPublicCampaignData(code: string) {
   const normalizedCode = makeCampaignCode(code);
   return unstable_cache(
     () => getPublicCampaignData(normalizedCode),
-    ["public-campaign-data-v9", normalizedCode],
+    ["public-campaign-data-v10", normalizedCode],
     { revalidate: false, tags: [publicCampaignDataTag(normalizedCode)] },
   )();
 }

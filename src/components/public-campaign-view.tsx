@@ -127,23 +127,30 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
         {showMonthlyExpenses ? (
           <section className="rounded-md border border-zinc-200 bg-white p-3 shadow-sm sm:p-4">
             <div>
-              <h2 className="text-sm font-semibold text-zinc-950">Thống kê khoản chi theo tháng</h2>
-              <p className="mt-1 text-xs text-zinc-500">Tổng các giao dịch cúng dường trong từng tháng</p>
+              <h2 className="text-sm font-semibold text-zinc-950">Thống kê thu và chi theo tháng</h2>
+              <p className="mt-1 text-xs text-zinc-500">Tổng tịnh tài thu vào và các khoản cúng dường trong từng tháng</p>
             </div>
 
             {data.monthlyExpenses.length > 0 ? (
               <div className="mt-4 space-y-2">
                 {data.monthlyExpenses.map((summary) => (
                   <details key={summary.month} className="group overflow-hidden rounded-md border border-zinc-200">
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 bg-zinc-50 px-3 py-3 marker:hidden">
+                  <summary className="flex cursor-pointer list-none flex-col gap-3 bg-zinc-50 px-3 py-3 marker:hidden sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <div className="font-semibold text-zinc-900">{monthLabel(summary.month)}</div>
                       <div className="mt-0.5 text-xs text-zinc-500">
-                        {summary.transactionCount.toLocaleString("vi-VN")} khoản chi · Bấm để xem chi tiết
+                        {summary.incomeTransactionCount.toLocaleString("vi-VN")} khoản thu · {summary.transactionCount.toLocaleString("vi-VN")} khoản chi
                       </div>
                     </div>
-                    <div className="whitespace-nowrap text-right font-semibold tabular-nums text-red-700">
-                      {money(summary.amount)}
+                    <div className="grid w-full grid-cols-2 gap-2 text-right sm:w-auto sm:min-w-72">
+                      <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2">
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Tổng thu</div>
+                        <div className="mt-0.5 whitespace-nowrap font-semibold tabular-nums text-emerald-800">{money(summary.incomeAmount)}</div>
+                      </div>
+                      <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2">
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-red-700">Tổng chi</div>
+                        <div className="mt-0.5 whitespace-nowrap font-semibold tabular-nums text-red-700">{money(summary.amount)}</div>
+                      </div>
                     </div>
                   </summary>
 
@@ -184,7 +191,7 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
               </div>
             ) : (
               <div className="mt-4 rounded-md border border-dashed border-zinc-200 px-3 py-8 text-center text-sm text-zinc-500">
-                Chưa có khoản chi.
+                Chưa có khoản thu hoặc chi.
               </div>
             )}
           </section>
