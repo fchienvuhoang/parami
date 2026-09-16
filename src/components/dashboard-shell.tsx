@@ -37,6 +37,7 @@ import type {
   TransactionSummary,
 } from "@/lib/dashboard";
 import { downloadElementAsPng } from "@/lib/download-image";
+import { StatementImage } from "@/components/statement-image";
 import { splitKeywords } from "@/lib/text";
 
 type Props = {
@@ -1974,6 +1975,7 @@ function CampaignModal({
                   {localizedStatementText}
                 </pre>
               </div>
+              <StatementImage key={campaign.id} text={localizedStatementText} code={campaign.code} />
             </div>
             {copyState === "error" ? (
               <p className="mt-2 text-xs text-rose-700">Không thể tự động copy. Bạn có thể chọn nội dung trong khung và copy thủ công.</p>

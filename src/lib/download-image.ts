@@ -1,4 +1,26 @@
-import { toPng } from "html-to-image";
+import { toBlob, toPng } from "html-to-image";
+
+export async function copyElementAsPng(element: HTMLElement) {
+  if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined") {
+    throw new Error("Trình duyệt chưa hỗ trợ copy hình ảnh. Bạn hãy dùng nút Tải PNG.");
+  }
+
+  // Start the clipboard write during the click, before rendering awaits (Safari).
+  const image = (async () => {
+    await document.fonts.ready;
+    const blob = await toBlob(element, {
+      cacheBust: true,
+      pixelRatio: 2,
+      backgroundColor: "#fff7dc",
+    });
+    if (!blob) throw new Error("Không thể tạo hình ảnh sao kê.");
+    return blob;
+  })();
+  await Promise.all([
+    navigator.clipboard.write([new ClipboardItem({ "image/png": image })]),
+    image,
+  ]);
+}
 
 export async function downloadElementAsPng(element: HTMLElement, fileName: string) {
   await document.fonts.ready;
