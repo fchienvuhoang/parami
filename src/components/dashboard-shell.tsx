@@ -37,7 +37,7 @@ import type {
   TransactionSummary,
 } from "@/lib/dashboard";
 import { downloadElementAsPng } from "@/lib/download-image";
-import { StatementImage } from "@/components/statement-image";
+import { CampaignTransferContent } from "@/components/campaign-transfer-content";
 import { splitKeywords } from "@/lib/text";
 
 type Props = {
@@ -1937,6 +1937,12 @@ function CampaignModal({
         </div>
 
         {campaign ? (
+          <div className="border-b border-zinc-200 px-5 py-4">
+            <CampaignTransferContent key={campaign.id} name={campaign.name} code={campaign.code} />
+          </div>
+        ) : null}
+
+        {campaign ? (
           <section className="border-b border-zinc-200 bg-amber-50/60 px-5 py-4">
             <div>
               <h3 className="text-sm font-semibold text-zinc-950">Mẫu sao kê để chia sẻ</h3>
@@ -1975,7 +1981,6 @@ function CampaignModal({
                   {localizedStatementText}
                 </pre>
               </div>
-              <StatementImage key={campaign.id} text={localizedStatementText} code={campaign.code} />
             </div>
             {copyState === "error" ? (
               <p className="mt-2 text-xs text-rose-700">Không thể tự động copy. Bạn có thể chọn nội dung trong khung và copy thủ công.</p>
