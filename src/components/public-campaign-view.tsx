@@ -7,7 +7,6 @@ import { downloadElementAsPng } from "@/lib/download-image";
 import type { PublicCampaignData, PublicCampaignTransaction } from "@/lib/public-campaign";
 import { redactPhoneNumbers } from "@/lib/privacy";
 import { normalizeTransferText } from "@/lib/text";
-import { CampaignTransferContent } from "@/components/campaign-transfer-content";
 
 const MONTHLY_EXPENSE_CAMPAIGN_CODES = new Set(["quy-hang-thang", "quy-nhom-1"]);
 
@@ -125,7 +124,6 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
       </header>
 
       <main className="mx-auto max-w-5xl space-y-4 px-4 py-4 sm:px-6">
-        <CampaignTransferContent name={data.name} code={data.code} />
         {showMonthlyExpenses ? (
           <section className="rounded-md border border-zinc-200 bg-white p-3 shadow-sm sm:p-4">
             <div>
