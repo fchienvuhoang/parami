@@ -1876,10 +1876,10 @@ function CampaignModal({
   const [copyState, setCopyState] = useState<"idle" | "original-copied" | "localized-copied" | "error">("idle");
 
   const statementText = campaign
-    ? campaignStatementText(campaign, `https://parami-eight.vercel.app${publicCampaignPath(campaign.code)}`)
+    ? campaignStatementText(campaign, `https://parami-group.danasangha.org${publicCampaignPath(campaign.code)}`)
     : "";
   const localizedStatementText = campaign
-    ? campaignStatementText(campaign, `https://parami-eight.vercel.app${publicCampaignPath(campaign.code)}`, true)
+    ? campaignStatementText(campaign, `https://parami-group.danasangha.org${publicCampaignPath(campaign.code)}`, true)
     : "";
 
   async function copyStatement(text: string, copiedState: "original-copied" | "localized-copied") {
