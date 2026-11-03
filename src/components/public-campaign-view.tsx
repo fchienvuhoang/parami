@@ -155,8 +155,8 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
                   </summary>
 
                   {summary.transactions.length > 0 ? (
-                    <div className="overflow-x-auto border-t border-zinc-200">
-                      <table className="w-full min-w-[620px] text-sm">
+                    <div className="min-w-0 border-t border-zinc-200">
+                      <table className="responsive-table w-full text-sm">
                       <thead className="bg-white text-xs uppercase text-zinc-500">
                         <tr>
                           <th className="px-3 py-2 text-left">Ngày</th>
@@ -167,13 +167,13 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
                       <tbody className="divide-y divide-zinc-100 bg-white">
                         {summary.transactions.map((transaction) => (
                           <tr key={transaction.id}>
-                            <td className="whitespace-nowrap px-3 py-2 align-top tabular-nums text-zinc-600">
+                            <td data-label="Ngày" className="whitespace-nowrap px-3 py-2 align-top tabular-nums text-zinc-600">
                               {transactionDateTime(transaction.transactionDate)}
                             </td>
-                            <td className="px-3 py-2 align-top text-zinc-800">
+                            <td data-label="Giao dịch" className="px-3 py-2 align-top text-zinc-800">
                               {redactPhoneNumbers(transaction.description)}
                             </td>
-                            <td className="whitespace-nowrap px-3 py-2 text-right align-top font-semibold tabular-nums text-red-700">
+                            <td data-label="Số tiền" className="whitespace-nowrap px-3 py-2 text-right align-top font-semibold tabular-nums text-red-700">
                               {money(transaction.amount)}
                             </td>
                           </tr>
@@ -234,8 +234,8 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
           </div>
 
           <div className="mt-4 hidden overflow-hidden rounded-xl border border-emerald-200 shadow-sm shadow-emerald-950/5 md:block">
-            <div className="max-h-[680px] overflow-auto">
-              <table className="w-full min-w-[820px] text-left text-sm">
+            <div className="min-w-0">
+              <table className="responsive-table w-full text-left text-sm">
                 <thead className="sticky top-0 z-10 bg-gradient-to-r from-emerald-100 via-emerald-50 to-amber-50 text-[11px] uppercase tracking-[0.1em] text-emerald-900 shadow-sm">
                   <tr>
                     <th className="w-16 px-3 py-3 text-center font-semibold">STT</th>
@@ -335,25 +335,25 @@ function PublicTransactionRow({
 
   return (
     <tr className="odd:bg-white even:bg-emerald-50/25 transition-colors hover:bg-amber-50/60">
-      <td className="px-3 py-3 text-center align-top">
+      <td data-label="STT" className="px-3 py-3 text-center align-top">
         <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-emerald-200 bg-white text-xs font-semibold tabular-nums text-emerald-700 shadow-sm">
           {index}
         </span>
       </td>
-      <td className="whitespace-nowrap px-3 py-3 align-top text-xs tabular-nums text-stone-500">{transactionDateTime(transaction.transactionDate)}</td>
-      <td className="min-w-[360px] px-3 py-3 align-top">
+      <td data-label="Ngày" className="whitespace-nowrap px-3 py-3 align-top text-xs tabular-nums text-stone-500">{transactionDateTime(transaction.transactionDate)}</td>
+      <td data-label="Phương danh thí chủ" className="min-w-0 px-3 py-3 align-top">
         <div className="whitespace-pre-wrap break-words font-semibold leading-6 text-zinc-900">
           {redactPhoneNumbers(transaction.description)}
         </div>
         <GroupedContributionInline transaction={transaction} />
         <TransactionDetailButton transaction={transaction} onClick={onViewDetail} />
       </td>
-      <td className="whitespace-nowrap px-3 py-3 align-top">
+      <td data-label="Loại" className="whitespace-nowrap px-3 py-3 align-top">
         <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${meta.className}`}>
           {meta.label}
         </span>
       </td>
-      <td className="whitespace-nowrap px-3 py-3 text-right align-top">
+      <td data-label="Tịnh tài" className="whitespace-nowrap px-3 py-3 text-right align-top">
         <span className={`inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-sm font-bold tabular-nums ring-1 ring-inset ring-emerald-100 ${meta.amountClassName}`}>
           {money(meta.amount)}
         </span>

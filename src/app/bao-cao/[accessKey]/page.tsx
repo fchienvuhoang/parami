@@ -90,19 +90,19 @@ export default async function ReadonlyDashboardPage({ params }: { params: Promis
               {summary.campaigns.length === 0 ? <div className="px-5 py-10 text-center text-zinc-500">Chưa có thiện pháp.</div> : null}
             </div>
 
-            <div className="hidden overflow-x-auto md:block">
-              <table className="w-full min-w-[720px] text-left text-sm">
+            <div className="hidden min-w-0 md:block">
+              <table className="responsive-table w-full text-left text-sm">
                 <thead className="bg-white text-xs uppercase text-zinc-500">
                   <tr><th className="px-5 py-3">Thiện pháp</th><th className="px-5 py-3">Trạng thái</th><th className="px-5 py-3 text-right">Số giao dịch</th><th className="px-5 py-3 text-right">Tổng thu</th><th className="px-5 py-3 text-right">Công khai</th></tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
                   {summary.campaigns.map((campaign) => (
                     <tr key={campaign.code} className="hover:bg-stone-50">
-                      <td className="max-w-md px-5 py-3"><div className="break-words font-medium leading-6">{campaign.name}</div><div className="mt-0.5 break-all font-mono text-xs text-zinc-500">{campaign.code}</div></td>
-                      <td className="px-5 py-3"><StatusBadge status={campaign.status} /></td>
-                      <td className="px-5 py-3 text-right tabular-nums">{campaign.transactionCount.toLocaleString("vi-VN")}</td>
-                      <td className="px-5 py-3 text-right font-semibold text-emerald-700">{money(campaign.income)}</td>
-                      <td className="px-5 py-3 text-right"><a href={`/thien-phap/${encodeURIComponent(campaign.code)}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100">Mở link <ExternalLink className="h-3.5 w-3.5" /></a></td>
+                      <td data-label="Thiện pháp" className="max-w-md px-5 py-3"><div className="break-words font-medium leading-6">{campaign.name}</div><div className="mt-0.5 break-all font-mono text-xs text-zinc-500">{campaign.code}</div></td>
+                      <td data-label="Trạng thái" className="px-5 py-3"><StatusBadge status={campaign.status} /></td>
+                      <td data-label="Số giao dịch" className="px-5 py-3 text-right tabular-nums">{campaign.transactionCount.toLocaleString("vi-VN")}</td>
+                      <td data-label="Tổng thu" className="px-5 py-3 text-right font-semibold text-emerald-700">{money(campaign.income)}</td>
+                      <td data-label="Công khai" className="px-5 py-3 text-right"><a href={`/thien-phap/${encodeURIComponent(campaign.code)}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100">Mở link <ExternalLink className="h-3.5 w-3.5" /></a></td>
                     </tr>
                   ))}
                   {summary.campaigns.length === 0 ? <tr><td colSpan={5} className="px-5 py-10 text-center text-zinc-500">Chưa có thiện pháp.</td></tr> : null}

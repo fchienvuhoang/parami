@@ -35,23 +35,86 @@ input[type="radio"]:disabled,
   cursor: not-allowed;
 }
 
-/* Keep admin tables compact while preserving readable amounts and controls. */
-.compact-table th,
-.compact-table td {
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
+/* Fixed columns fit the available panel; long text and controls wrap in place. */
+.responsive-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
 }
 
-.compact-table th {
+.responsive-table :is(th, td) {
+  min-width: 0;
+  padding: 0.5rem;
   white-space: normal;
-}
-
-.compact-table td {
   overflow-wrap: anywhere;
 }
 
-@media (min-width: 1024px) {
-  .compact-table {
-    font-size: 0.8125rem;
+.responsive-table :is(input:not([type="checkbox"]), select) {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.responsive-table :is(button, a, span, div) {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.responsive-table td > .flex {
+  flex-wrap: wrap;
+}
+
+/* Stack each row into labelled fields on narrow screens, including dialogs. */
+@media (max-width: 1023px) {
+  .responsive-table,
+  .responsive-table tbody {
+    display: block;
+  }
+
+  .responsive-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .responsive-table tbody > tr {
+    display: block;
+    padding: 0.5rem;
+    border-bottom: 1px solid #e4e4e7;
+  }
+
+  .responsive-table tbody > tr:last-child {
+    border-bottom: 0;
+  }
+
+  .responsive-table tbody > tr > td {
+    display: grid;
+    grid-template-columns: minmax(0, 7.5rem) minmax(0, 1fr);
+    align-items: start;
+    gap: 0.75rem;
+    width: 100%;
+    max-width: none;
+    text-align: left;
+  }
+
+  .responsive-table td[data-label]::before {
+    content: attr(data-label);
+    color: #71717a;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .responsive-table tbody > tr > td[colspan] {
+    display: block;
+    text-align: center;
+  }
+
+  .responsive-table td > * {
+    grid-column: 2;
+    min-width: 0;
   }
 }
