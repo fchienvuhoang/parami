@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { PwaRegistration } from "@/components/pwa-registration";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -15,7 +16,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Quản lý thiện pháp",
   description: "Phân loại sao kê VIB theo thiện pháp.",
+  applicationName: "Parami",
+  appleWebApp: { capable: true, title: "Parami", statusBarStyle: "default" },
+  icons: { apple: "/icons/icon-180.png" },
 };
+
+export const viewport: Viewport = { themeColor: "#92400e" };
 
 export default function RootLayout({
   children,
@@ -36,7 +42,10 @@ export default function RootLayout({
         />
         <link rel="preload" href="/parami-logo.png" as="image" type="image/png" />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <PwaRegistration />
+        {children}
+      </body>
     </html>
   );
 }

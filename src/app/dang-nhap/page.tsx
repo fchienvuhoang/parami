@@ -1,11 +1,13 @@
+import { googleConfig } from "@/lib/google-auth";
 import type { Metadata } from "next";
 import { LockKeyhole } from "lucide-react";
 import { LoginForm } from "@/components/login-form";
-import { isAdminPasswordConfigured, safeRedirectPath } from "@/lib/auth";
+import { safeRedirectPath } from "@/lib/auth";
 
 type Props = {
   searchParams: Promise<{
     next?: string;
+    error?: string;
   }>;
 };
 
@@ -14,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 export default async function LoginPage({ searchParams }: Props) {
-  const { next } = await searchParams;
+  const { next, error } = await searchParams;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f4f6ff] px-4 py-8 text-slate-950">
@@ -26,12 +28,12 @@ export default async function LoginPage({ searchParams }: Props) {
           <div>
             <h1 className="text-xl font-semibold">Đăng nhập quản trị</h1>
             <p className="mt-1 text-sm leading-6 text-zinc-600">
-              Nhập mật khẩu để quản lý sao kê VIB và các thiện pháp.
+              Đăng nhập bằng tài khoản Google được cấp quyền để quản lý sao kê VIB và các thiện pháp.
             </p>
           </div>
         </div>
 
-        <LoginForm authConfigured={isAdminPasswordConfigured()} nextPath={safeRedirectPath(next)} />
+        <LoginForm authConfigured={Boolean(googleConfig())} error={error === "google"} nextPath={safeRedirectPath(next)} />
       </section>
     </main>
   );

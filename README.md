@@ -28,3 +28,19 @@ pnpm dev
 ```
 
 Các biến môi trường chính: `DATABASE_URL`, `ADMIN_PASSWORD`, và `AUTH_SECRET`.
+
+## Google SSO quản trị
+
+Chỉ tài khoản Google có email đã xác minh `fchienvuhoang@gmail.com` được đăng nhập.
+Đăng nhập mật khẩu đã được thay bằng Google; phiên cũ cần đăng nhập lại.
+
+- Tạo OAuth client loại Web application trong Google Cloud.
+- Thêm redirect URI chính xác: `https://parami-group.danasangha.org/api/auth/google/callback`
+  (dùng domain thực tế nơi ứng dụng được triển khai).
+- Cấu hình `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `AUTH_SECRET`
+  (`openssl rand -base64 32`) và `NEXT_PUBLIC_APP_URL=https://parami-group.danasangha.org`.
+- Local: dùng `NEXT_PUBLIC_APP_URL=http://localhost:3000` và thêm redirect URI
+  `http://localhost:3000/api/auth/google/callback` vào cùng client.
+- Redeploy sau khi cập nhật biến môi trường. Đăng nhập chỉ yêu cầu `openid email`,
+  không yêu cầu quyền đọc Gmail. Các biến `GMAIL_*` vẫn phục vụ nhập sao kê riêng.
+- Cookie phiên HttpOnly có hạn 7 ngày; OAuth dùng state, nonce và PKCE.
