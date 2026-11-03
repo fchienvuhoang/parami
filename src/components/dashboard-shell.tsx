@@ -37,7 +37,7 @@ import type {
 } from "@/lib/dashboard";
 import { downloadElementAsPng } from "@/lib/download-image";
 import { CampaignTransferContent } from "@/components/campaign-transfer-content";
-import { splitKeywords } from "@/lib/text";
+import { normalizeTransferText, splitKeywords } from "@/lib/text";
 
 type Props = {
   state: DashboardState;
@@ -103,6 +103,11 @@ function Dashboard({ data }: { data: DashboardData }) {
   const [mainTab, setMainTab] = useState<"overview" | "transactions">("overview");
   const [activeTab, setActiveTab] = useState("all");
   const [query, setQuery] = useState("");
+  const [campaignQuery, setCampaignQuery] = useState("");
+  const normalizedCampaignQuery = normalizeTransferText(campaignQuery);
+  const filteredCampaigns = data.campaigns.filter((campaign) =>
+    normalizeTransferText(campaign.name).includes(normalizedCampaignQuery),
+  );
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<ImportResponse | null>(null);
@@ -651,9 +656,26 @@ function Dashboard({ data }: { data: DashboardData }) {
               <Panel>
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <PanelTitle icon={Settings} title="Danh sách thiện pháp" />
+                  <div className="relative w-full lg:max-w-sm">
+                    <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
+                    <input
+                      type="search"
+                      aria-label="Tìm thiện pháp theo tên"
+                      placeholder="Tìm theo tên thiện pháp..."
+                      value={campaignQuery}
+                      onChange={(event) => setCampaignQuery(event.target.value)}
+                      className="w-full rounded-md border border-zinc-300 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                    />
+                  </div>
                 </div>
+                {campaignQuery.trim() && (
+                  <p role="status" className="mt-2 text-sm text-zinc-500">
+                    Tìm thấy {filteredCampaigns.length}/{data.campaigns.length} thiện pháp.
+                  </p>
+                )}
                 <CampaignTable
-                  campaigns={data.campaigns}
+                  campaigns={filteredCampaigns}
+                  isSearching={Boolean(campaignQuery.trim())}
                   onSelect={(campaign) => {
                     setError(null);
                     setCampaignModal({ mode: "edit", campaign });
@@ -1069,8 +1091,10 @@ function TransactionTable({
 function CampaignTable({
   campaigns,
   onSelect,
+  isSearching = false,
 }: {
   campaigns: CampaignSummary[];
+  isSearching?: boolean;
   onSelect: (campaign: CampaignSummary) => void;
 }) {
   return (
@@ -1181,7 +1205,7 @@ function CampaignTable({
             {campaigns.length === 0 ? (
               <tr>
                 <td colSpan={10} className="px-3 py-8 text-center text-zinc-500">
-                  Chưa có thiện pháp nào.
+                  {isSearching ? "Không tìm thấy thiện pháp có tên phù hợp." : "Chưa có thiện pháp nào."}
                 </td>
               </tr>
             ) : null}
