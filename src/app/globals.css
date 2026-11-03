@@ -34,3 +34,24 @@ input[type="radio"]:disabled,
 [role="button"][aria-disabled="true"] {
   cursor: not-allowed;
 }
+
+/* Keep admin tables compact while preserving readable amounts and controls. */
+.compact-table th,
+.compact-table td {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.compact-table th {
+  white-space: normal;
+}
+
+.compact-table td {
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 1024px) {
+  .compact-table {
+    font-size: 0.8125rem;
+  }
+}

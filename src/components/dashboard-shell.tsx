@@ -959,8 +959,8 @@ function TransactionTable({
 
   return (
     <div className="mt-4 overflow-hidden rounded-md border border-zinc-200">
-      <div className="max-h-[620px] overflow-auto">
-        <table className="w-full min-w-[980px] text-left text-sm">
+      <div className="overflow-x-auto">
+        <table className="compact-table w-full min-w-[900px] text-left text-sm">
           <thead className="sticky top-0 bg-zinc-50 text-xs uppercase text-zinc-500">
             <tr>
               <th className="w-10 px-3 py-2">
@@ -974,7 +974,7 @@ function TransactionTable({
                 />
               </th>
               <th className="px-3 py-2">Ngày</th>
-              <th className="min-w-[36rem] px-3 py-2">Nội dung chuyển khoản</th>
+              <th className="w-[28%] min-w-48 px-3 py-2">Nội dung chuyển khoản</th>
               <th className="px-3 py-2">Chi tiết</th>
               <th className="px-3 py-2 text-right">Có</th>
               <th className="px-3 py-2 text-right">Nợ</th>
@@ -1003,7 +1003,7 @@ function TransactionTable({
                   />
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 tabular-nums text-zinc-600">{transactionDateTime(transaction.transactionDate)}</td>
-                <td className="min-w-[36rem] px-3 py-2 align-top">
+                <td className="w-[28%] min-w-48 px-3 py-2 align-top">
                   <div className="whitespace-pre-wrap break-words font-medium text-zinc-900">
                     {transaction.description}
                   </div>
@@ -1047,11 +1047,11 @@ function TransactionTable({
                   )}
                 </td>
                 <td className="px-3 py-2">
-                  <div className="flex items-center gap-2"><select
+                  <div className="flex max-w-52 flex-wrap items-center gap-1.5"><select
                     value={transaction.campaign?.id ?? ""}
                     disabled={pendingTransactionId === transaction.id || isBulkAssigning}
                     onChange={(event) => onAssign(transaction.id, event.target.value || null)}
-                    className="w-44 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                    className="w-32 max-w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
                   >
                     <option value="">Chưa phân loại</option>
                     {campaigns.map((campaign) => (
@@ -1103,7 +1103,7 @@ function CampaignTable({
   return (
     <div className="mt-4 overflow-hidden rounded-md border border-zinc-200">
       <div className="overflow-auto">
-        <table className="w-full min-w-[1080px] text-left text-sm">
+        <table className="compact-table w-full min-w-[960px] text-left text-sm">
           <thead className="bg-zinc-50 text-xs uppercase text-zinc-500">
             <tr>
               <th className="px-3 py-2">Mã</th>
@@ -1234,12 +1234,12 @@ function DebitTransactionTable({
 }) {
   return (
     <div className="mt-4 overflow-hidden rounded-md border border-zinc-200">
-      <div className="max-h-[420px] overflow-auto">
-        <table className="w-full min-w-[880px] text-left text-sm">
+      <div className="overflow-x-auto">
+        <table className="compact-table w-full min-w-[760px] text-left text-sm">
           <thead className="sticky top-0 bg-zinc-50 text-xs uppercase text-zinc-500">
             <tr>
               <th className="px-3 py-2">Ngày</th>
-              <th className="min-w-[36rem] px-3 py-2">Nội dung chuyển khoản</th>
+              <th className="w-[28%] min-w-48 px-3 py-2">Nội dung chuyển khoản</th>
               <th className="px-3 py-2">Chi tiết</th>
               <th className="px-3 py-2 text-right">Nợ</th>
               <th className="px-3 py-2">Thiện pháp</th>
@@ -1255,7 +1255,7 @@ function DebitTransactionTable({
                 <td className="whitespace-nowrap px-3 py-2 align-top text-zinc-600">
                   {dateOnly(transaction.transactionDate)}
                 </td>
-                <td className="min-w-[36rem] px-3 py-2 align-top">
+                <td className="w-[28%] min-w-48 px-3 py-2 align-top">
                   <div className="whitespace-pre-wrap break-words font-medium text-zinc-900">
                     {transaction.description}
                   </div>
@@ -1286,11 +1286,11 @@ function DebitTransactionTable({
                   )}
                 </td>
                 <td className="px-3 py-2 align-top">
-                  <div className="flex items-center gap-2"><select
+                  <div className="flex max-w-52 flex-wrap items-center gap-1.5"><select
                     value={transaction.campaign?.id ?? ""}
                     disabled={pendingTransactionId === transaction.id}
                     onChange={(event) => onAssign(transaction.id, event.target.value || null)}
-                    className="w-44 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                    className="w-32 max-w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
                   >
                     <option value="">Chưa gán</option>
                     {campaigns.map((campaign) => (
