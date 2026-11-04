@@ -13,6 +13,7 @@
     p { margin: 0; font-size: .875rem; }
     .spinner { width: 1.75rem; height: 1.75rem; border: 3px solid #f3dfbf; border-top-color: #92400e; border-radius: 50%; animation: spin .8s linear infinite; }
     a { color: #92400e; }
+    button { border: 0; border-radius: .75rem; padding: .75rem 1.25rem; color: white; background: #92400e; font: inherit; cursor: pointer; }
     @keyframes spin { to { transform: rotate(360deg); } }
     @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
   </style>
@@ -26,10 +27,35 @@
     <noscript><a href="/">Mở Parami</a></noscript>
   </main>
   <script>
-    // Paint the launch screen before requesting the authenticated dashboard.
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () { window.location.replace('/'); });
-    });
+    (async function () {
+      var target = location.pathname === '/launch.html' ? '/' : location.pathname + location.search;
+      try {
+        var response = await fetch(target, {
+          credentials: 'same-origin', cache: 'no-store',
+          signal: AbortSignal.timeout(60000)
+        });
+        if (!response.ok || !response.headers.get('content-type')?.includes('text/html')) {
+          throw new Error('Không tải được trang');
+        }
+        var html = await response.text();
+        var finalUrl = new URL(response.url);
+        if (finalUrl.origin !== location.origin) throw new Error('Địa chỉ không hợp lệ');
+        history.replaceState(null, '', finalUrl.pathname + finalUrl.search + location.hash);
+        document.open();
+        document.write(html);
+        document.close();
+      } catch (error) {
+        document.querySelector('.spinner').hidden = true;
+        document.querySelector('main').setAttribute('aria-busy', 'false');
+        document.querySelector('p').textContent = navigator.onLine
+          ? 'Tải ứng dụng chưa thành công. Vui lòng thử lại.'
+          : 'Không có kết nối mạng. Vui lòng kết nối Internet.';
+        var retry = document.createElement('button');
+        retry.textContent = 'Thử lại';
+        retry.onclick = function () { location.reload(); };
+        document.querySelector('main').appendChild(retry);
+      }
+    })();
   </script>
 </body>
 </html>

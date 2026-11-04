@@ -1,4 +1,4 @@
-const CACHE_NAME = "parami-offline-v2";
+const CACHE_NAME = "parami-offline-v3";
 const OFFLINE_URL = "/offline.html";
 const LAUNCH_ASSETS = ["/launch.html", "/icons/icon-192.png"];
 
@@ -28,6 +28,14 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   if (event.request.mode !== "navigate") return;
+  // Existing installations may still start at /. Serve the public loader first;
+  // its same-origin fetch is not a navigation and reaches the authenticated server.
+  if (url.pathname === "/") {
+    event.respondWith(caches.open(CACHE_NAME).then(async (cache) =>
+      (await cache.match("/launch.html")) || fetch("/launch.html"),
+    ));
+    return;
+  }
   event.respondWith(fetch(event.request).catch(async () => {
     return (await caches.match(OFFLINE_URL)) || new Response("Không có kết nối mạng.", {
       status: 503,

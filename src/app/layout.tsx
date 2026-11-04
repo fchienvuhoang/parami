@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { BootScreen } from "@/components/boot-screen";
 import { PwaRegistration } from "@/components/pwa-registration";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -42,7 +43,8 @@ export default function RootLayout({
         />
         <link rel="preload" href="/parami-logo.png" as="image" type="image/png" />
       </head>
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" style={{ backgroundColor: "#fffaf0" }}>
+        <BootScreen />
         <PwaRegistration />
         {children}
       </body>
