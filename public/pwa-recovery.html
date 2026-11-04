@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#92400e">
+  <title>Cập nhật Parami</title>
+  <style>
+    body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: #fffaf0; color: #92400e; font: 16px/1.6 system-ui, sans-serif; }
+    main { max-width: 28rem; padding: 2rem; text-align: center; }
+    a { display: inline-block; padding: .75rem 1rem; border-radius: .75rem; background: #92400e; color: white; }
+  </style>
+</head>
+<body><main>
+  <h1>Parami</h1>
+  <p role="status">Đang cập nhật ứng dụng…</p>
+  <a href="/dang-nhap?pwa=4">Mở trang đăng nhập</a>
+</main>
+<script>
+  (async function () {
+    try {
+      if ('serviceWorker' in navigator) {
+        await Promise.race([
+          (async function () {
+            var registration = await navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' });
+            await registration.update();
+            var worker = registration.installing || registration.waiting;
+            if (worker && worker.state !== 'activated') {
+              await new Promise(function (resolve, reject) {
+                worker.addEventListener('statechange', function () {
+                  if (worker.state === 'activated') resolve();
+                  if (worker.state === 'redundant') reject(new Error('Update failed'));
+                });
+              });
+            }
+          })(),
+          new Promise(function (_, reject) { setTimeout(function () { reject(new Error('Timeout')); }, 15000); })
+        ]);
+      }
+      location.replace('/?pwa=4');
+    } catch (_) {
+      document.querySelector('p').textContent = 'Vui lòng mở trang đăng nhập để tiếp tục.';
+    }
+  })();
+</script>
+</body></html>

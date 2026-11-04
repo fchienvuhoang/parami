@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Parami",
     description: "Quản lý thiện pháp và phân loại sao kê VIB.",
     lang: "vi",
-    start_url: "/launch.html",
+    start_url: "/?pwa=4",
     scope: "/",
     display: "standalone",
     background_color: "#fffaf0",
