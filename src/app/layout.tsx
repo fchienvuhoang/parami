@@ -17,7 +17,13 @@ export const metadata: Metadata = {
   title: "Quản lý thiện pháp",
   description: "Phân loại sao kê VIB theo thiện pháp.",
   applicationName: "Parami",
-  appleWebApp: { capable: true, title: "Parami", statusBarStyle: "default" },
+  appleWebApp: {
+    capable: true, title: "Parami", statusBarStyle: "default",
+    startupImage: [{
+      url: "/splash/iphone-430x932-3.png",
+      media: "(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)",
+    }],
+  },
   icons: { apple: "/icons/icon-180.png" },
 };
 
@@ -32,6 +38,7 @@ export default function RootLayout({
     <html
       lang="vi"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      style={{ backgroundColor: "#fffaf0" }}
     >
       <head>
         <link
