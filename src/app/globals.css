@@ -118,3 +118,44 @@ input[type="radio"]:disabled,
     min-width: 0;
   }
 }
+
+/* Give campaign names room while keeping dense summary rows easy to scan. */
+.campaign-table :is(th, td) {
+  padding: 0.375rem;
+  line-height: 1.25;
+}
+
+.campaign-table td[data-label="Từ khóa"] > div {
+  gap: 0.125rem;
+}
+
+@media (min-width: 1024px) {
+  .campaign-table {
+    font-size: 0.75rem;
+  }
+
+  .campaign-table td[data-label="Mã"] > span {
+    display: inline-block;
+    padding: 0.125rem 0.25rem;
+  }
+
+  .campaign-table td[data-label="Trạng thái"] > span {
+    display: inline-block;
+    padding: 0.125rem 0.25rem;
+  }
+}
+
+@media (max-width: 1023px) {
+  .campaign-table colgroup {
+    display: none;
+  }
+
+  .campaign-table tbody > tr {
+    padding: 0.25rem;
+  }
+
+  .campaign-table tbody > tr > td {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+}

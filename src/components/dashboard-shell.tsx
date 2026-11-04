@@ -1100,7 +1100,19 @@ function CampaignTable({
   return (
     <div className="mt-4 overflow-hidden rounded-md border border-zinc-200">
       <div className="min-w-0">
-        <table className="responsive-table w-full text-left text-sm">
+        <table className="responsive-table campaign-table w-full text-left text-sm">
+          <colgroup>
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "27%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "12%" }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "4%" }} />
+            <col style={{ width: "7%" }} />
+            <col style={{ width: "3%" }} />
+          </colgroup>
           <thead className="bg-zinc-50 text-xs uppercase text-zinc-500">
             <tr>
               <th className="px-3 py-2">Mã</th>
@@ -1135,8 +1147,8 @@ function CampaignTable({
                     {campaign.code}
                   </span>
                 </td>
-                <td data-label="Thiện pháp" className="max-w-xs px-3 py-2">
-                  <div className="font-medium text-zinc-900">{campaign.name}</div>
+                <td data-label="Thiện pháp" className="px-3 py-2">
+                  <div title={campaign.name} className="line-clamp-2 font-medium leading-5 text-zinc-900">{campaign.name}</div>
                   {campaign.description ? (
                     <div className="mt-1 line-clamp-1 text-xs text-zinc-500">{campaign.description}</div>
                   ) : null}
@@ -1154,8 +1166,8 @@ function CampaignTable({
                         title={keyword.active ? "Từ khóa đang hoạt động" : "Đã tắt vì thiện pháp đã hoàn tất"}
                         className={
                           keyword.active
-                            ? "rounded-md bg-zinc-100 px-2 py-1 text-xs text-zinc-600"
-                            : "inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-400"
+                            ? "rounded-md bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-600"
+                            : "inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-xs text-zinc-400"
                         }
                       >
                         <span className={keyword.active ? undefined : "line-through"}>{keyword.keyword}</span>
@@ -1167,7 +1179,7 @@ function CampaignTable({
                       </span>
                     ))}
                     {campaign.keywords.length > 4 ? (
-                      <span className="rounded-md bg-zinc-100 px-2 py-1 text-xs text-zinc-500">
+                      <span className="rounded-md bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-500">
                         +{campaign.keywords.length - 4}
                       </span>
                     ) : null}
