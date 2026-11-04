@@ -72,7 +72,7 @@ export default async function ReadonlyDashboardPage({ params }: { params: Promis
 
             <div className="divide-y divide-stone-100 md:hidden">
               {summary.campaigns.map((campaign) => (
-                <article key={campaign.code} className="space-y-3 p-4">
+                <article key={campaign.code} className="mobile-compact-report space-y-3 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <h3 className="break-words font-medium leading-6 text-zinc-950">{campaign.name}</h3>

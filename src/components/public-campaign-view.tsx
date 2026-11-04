@@ -290,7 +290,7 @@ function PublicTransactionCard({
   const meta = transactionMeta(transaction);
 
   return (
-    <article className="overflow-hidden rounded-xl border border-emerald-200 bg-white shadow-sm shadow-emerald-950/5">
+    <article className="mobile-compact-card overflow-hidden rounded-xl border border-emerald-200 bg-white shadow-sm shadow-emerald-950/5">
       <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-emerald-50 via-white to-amber-50/70 px-3 py-3">
         <div className="flex min-w-0 items-center gap-3">
           <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-emerald-200 bg-white text-xs font-semibold tabular-nums text-emerald-700 shadow-sm">

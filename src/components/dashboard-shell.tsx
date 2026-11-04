@@ -1210,7 +1210,16 @@ function CampaignTable({
                   </a>
                 </td>
                 <td data-label="Sửa" className="whitespace-nowrap px-3 py-2 text-right text-zinc-500">
-                  <Settings className="ml-auto h-4 w-4" />
+                  <button
+                    type="button"
+                    aria-label={`Cài đặt thiện pháp ${campaign.code}`}
+                    title="Cài đặt thiện pháp"
+                    onClick={(event) => { event.stopPropagation(); onSelect(campaign); }}
+                    onKeyDown={(event) => event.stopPropagation()}
+                    className="campaign-settings-button inline-flex items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                  >
+                    <Settings className="h-5 w-5" />
+                  </button>
                 </td>
               </tr>
             ))}
