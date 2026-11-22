@@ -15,9 +15,7 @@ export function InternalCampaignReport({ campaigns }: { campaigns: InternalCampa
   const selected = tab === "active" ? active : completed;
   const normalized = normalizeTransferText(query);
   const visible = selected.filter((campaign) => normalizeTransferText(`${campaign.code} ${campaign.name}`).includes(normalized));
-  const totals = selected.reduce((sum, campaign) => ({
-    income: sum.income + campaign.income, expenses: sum.expenses + campaign.expenses, balance: sum.balance + campaign.balance,
-  }), { income: 0, expenses: 0, balance: 0 });
+
 
   return (
     <section className="space-y-4">
@@ -32,21 +30,13 @@ export function InternalCampaignReport({ campaigns }: { campaigns: InternalCampa
           </button>
         ))}
       </div>
-      <dl className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-3">
-        {([ ["Tổng thu", totals.income], ["Tổng chi", totals.expenses], ["Còn lại", totals.balance] ] as const).map(([label, amount]) => (
-          <div key={label} className="min-w-0 rounded-xl border border-stone-200 bg-white px-3 py-3">
-            <dt className="text-xs text-stone-500">{label}</dt>
-            <dd className="mt-1 break-words text-base font-semibold tabular-nums text-emerald-900 sm:text-xl">{money(amount)}</dd>
-          </div>
-        ))}
-      </dl>
       <label className="relative block">
         <span className="sr-only">Tìm thiện pháp theo tên hoặc mã</span>
         <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-stone-400" />
         <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm theo tên hoặc mã thiện pháp…"
           className="w-full rounded-xl border border-stone-200 bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100" />
       </label>
-      <p role="status" className="text-xs text-stone-500">Hiển thị {visible.length}/{selected.length} thiện pháp · Tổng thu chi tính cho toàn bộ tab</p>
+      <p role="status" className="text-xs text-stone-500">Hiển thị {visible.length}/{selected.length} thiện pháp</p>
       <div className="hidden overflow-hidden rounded-xl border border-stone-200 bg-white md:block">
         <table className="w-full table-fixed text-left text-sm">
           <caption className="sr-only">{tab === "active" ? "Thiện pháp đang hoạt động" : "Thiện pháp đã kết thúc"}</caption>
