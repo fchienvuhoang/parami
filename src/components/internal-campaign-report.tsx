@@ -1,0 +1,93 @@
+"use client";
+
+import { useState } from "react";
+import { ExternalLink, Search } from "lucide-react";
+import type { InternalCampaignSummary } from "@/lib/internal-campaign-report";
+import { normalizeTransferText } from "@/lib/text";
+
+const money = (amount: number) => `${amount.toLocaleString("vi-VN")}đ`;
+
+export function InternalCampaignReport({ campaigns }: { campaigns: InternalCampaignSummary[] }) {
+  const [tab, setTab] = useState<"active" | "completed">("active");
+  const [query, setQuery] = useState("");
+  const active = campaigns.filter((campaign) => campaign.status !== "COMPLETED");
+  const completed = campaigns.filter((campaign) => campaign.status === "COMPLETED");
+  const selected = tab === "active" ? active : completed;
+  const normalized = normalizeTransferText(query);
+  const visible = selected.filter((campaign) => normalizeTransferText(`${campaign.code} ${campaign.name}`).includes(normalized));
+  const totals = selected.reduce((sum, campaign) => ({
+    income: sum.income + campaign.income, expenses: sum.expenses + campaign.expenses, balance: sum.balance + campaign.balance,
+  }), { income: 0, expenses: 0, balance: 0 });
+
+  return (
+    <section className="space-y-4">
+      <div aria-label="Trạng thái thiện pháp" className="grid grid-cols-2 gap-2">
+        {([
+          ["active", "Đang hoạt động", active.length],
+          ["completed", "Đã kết thúc", completed.length],
+        ] as const).map(([value, label, count]) => (
+          <button key={value} type="button" aria-pressed={tab === value} onClick={() => setTab(value)}
+            className={`rounded-xl border px-3 py-3 text-sm font-semibold ${tab === value ? "border-emerald-700 bg-emerald-700 text-white" : "border-stone-200 bg-white text-stone-600 hover:bg-stone-50"}`}>
+            {label} <span className="ml-1 text-xs opacity-80">({count})</span>
+          </button>
+        ))}
+      </div>
+      <dl className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-3">
+        {([ ["Tổng thu", totals.income], ["Tổng chi", totals.expenses], ["Còn lại", totals.balance] ] as const).map(([label, amount]) => (
+          <div key={label} className="min-w-0 rounded-xl border border-stone-200 bg-white px-3 py-3">
+            <dt className="text-xs text-stone-500">{label}</dt>
+            <dd className="mt-1 break-words text-base font-semibold tabular-nums text-emerald-900 sm:text-xl">{money(amount)}</dd>
+          </div>
+        ))}
+      </dl>
+      <label className="relative block">
+        <span className="sr-only">Tìm thiện pháp theo tên hoặc mã</span>
+        <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-stone-400" />
+        <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm theo tên hoặc mã thiện pháp…"
+          className="w-full rounded-xl border border-stone-200 bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100" />
+      </label>
+      <p role="status" className="text-xs text-stone-500">Hiển thị {visible.length}/{selected.length} thiện pháp · Tổng thu chi tính cho toàn bộ tab</p>
+      <div className="hidden overflow-hidden rounded-xl border border-stone-200 bg-white md:block">
+        <table className="w-full table-fixed text-left text-sm">
+          <caption className="sr-only">{tab === "active" ? "Thiện pháp đang hoạt động" : "Thiện pháp đã kết thúc"}</caption>
+          <colgroup><col style={{ width: "45%" }} /><col style={{ width: "17%" }} /><col style={{ width: "17%" }} /><col style={{ width: "21%" }} /></colgroup>
+          <thead className="bg-stone-100 text-xs text-stone-600"><tr><th scope="col" className="p-3">Thiện pháp</th><th scope="col" className="p-3 text-right">Tổng thu</th><th scope="col" className="p-3 text-right">Tổng chi</th><th scope="col" className="p-3 text-right">Còn lại</th></tr></thead>
+          <tbody className="divide-y divide-stone-100">
+            {visible.map((campaign) => (
+              <tr key={campaign.code} className="hover:bg-emerald-50/40">
+                <td className="break-words p-3"><CampaignLink campaign={campaign} /></td>
+                <td className="break-words p-3 text-right tabular-nums text-emerald-700">{money(campaign.income)}</td>
+                <td className="break-words p-3 text-right tabular-nums text-amber-700">{money(campaign.expenses)}</td>
+                <td className="break-words p-3 text-right font-semibold tabular-nums">{money(campaign.balance)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="space-y-2 md:hidden">
+        {visible.map((campaign) => (
+          <article key={campaign.code} className="rounded-xl border border-stone-200 bg-white p-3">
+            <CampaignLink campaign={campaign} />
+            <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-stone-100 pt-2 text-xs">
+              {([ ["Thu", campaign.income], ["Chi", campaign.expenses], ["Còn lại", campaign.balance] ] as const).map(([label, amount]) => (
+                <div key={label} className="min-w-0"><dt className="text-stone-500">{label}</dt><dd className="mt-1 break-words font-semibold tabular-nums">{money(amount)}</dd></div>
+              ))}
+            </dl>
+          </article>
+        ))}
+      </div>
+      {visible.length === 0 && <p className="rounded-xl border border-stone-200 bg-white p-8 text-center text-sm text-stone-500">Không tìm thấy thiện pháp phù hợp.</p>}
+    </section>
+  );
+}
+
+function CampaignLink({ campaign }: { campaign: InternalCampaignSummary }) {
+  return (
+    <div className="min-w-0">
+      <a href={`/thien-phap/${encodeURIComponent(campaign.code)}`} target="_blank" rel="noreferrer" className="break-words font-medium leading-5 text-zinc-900 hover:text-emerald-700 hover:underline">
+        {campaign.name} <ExternalLink aria-hidden="true" className="inline h-3 w-3" />
+      </a>
+      <p className="mt-1 break-all font-mono text-xs text-stone-500">{campaign.code}{campaign.status === "PAUSED" ? " · Tạm dừng" : ""}</p>
+    </div>
+  );
+}
