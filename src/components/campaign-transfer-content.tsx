@@ -31,7 +31,7 @@ export function CampaignTransferContent({ name, code }: { name: string; code: st
         </button>
       </div>
       <p className="mt-3 select-all break-words rounded-md border border-amber-200 bg-white p-3 text-sm leading-6 text-zinc-800">{content}</p>
-      <p className="mt-2 text-xs text-zinc-500">Vui lòng giữ nguyên mã thiện pháp ở cuối nội dung khi chuyển khoản.</p>
+      <p className="mt-2 text-xs text-zinc-500">Vui lòng giữ nguyên mã thiện pháp ở đầu nội dung khi chuyển khoản. Tên thiện pháp được rút gọn khi nội dung dài.</p>
       <p role="status" className="mt-2 text-xs text-zinc-600">
         {error ? "Không thể tự động sao chép. Bạn có thể chọn nội dung trong khung và sao chép thủ công." : copied ? "Đã sao chép nội dung chuyển khoản." : ""}
       </p>
