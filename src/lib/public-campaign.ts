@@ -1,3 +1,4 @@
+import { getFundTransfers, fundTransferBalance } from "@/lib/fund-transfers";
 import { revalidateTag, unstable_cache } from "next/cache";
 import { decimalToNumber } from "@/lib/money";
 import { getPrisma, retryTransientDatabaseRead } from "@/lib/prisma";
@@ -12,6 +13,7 @@ export type PublicCampaignData = {
   expenses: number;
   balance: number;
   transactionCount: number;
+  transfers: { id: string; direction: "IN" | "OUT"; otherCode: string; otherName: string; amount: number; transferredAt: string; note: string }[];
   monthlyExpenses: PublicCampaignMonthlyExpense[];
   transactions: PublicCampaignTransaction[];
 };
@@ -141,7 +143,7 @@ async function loadPublicCampaignData(code: string): Promise<PublicCampaignData 
 
   const hasMonthlyExpenseStatistics = MONTHLY_EXPENSE_CAMPAIGN_CODES.has(campaign.code);
 
-  const [transactionSums, transactions, monthlyTransactions, openingAllocation, allocatedTransactions, groupedContributionBatches] = await Promise.all([
+  const [transactionSums, transactions, monthlyTransactions, openingAllocation, allocatedTransactions, groupedContributionBatches, fundTransfers] = await Promise.all([
     prisma.bankTransaction.aggregate({
       where: {
         campaignId: campaign.id,
@@ -225,6 +227,7 @@ async function loadPublicCampaignData(code: string): Promise<PublicCampaignData 
       where: { transaction: { campaignId: campaign.id, creditAmount: { gt: 0 } } },
       select: { _count: { select: { entries: true } } },
     }),
+    getFundTransfers(),
   ]);
 
   const allocatedIncome = allocatedTransactions.reduce((sum, item) =>
@@ -318,7 +321,13 @@ async function loadPublicCampaignData(code: string): Promise<PublicCampaignData 
     status: campaign.status,
     income,
     expenses,
-    balance: openingBalance + income - expenses,
+    balance: openingBalance + income - expenses + fundTransferBalance(fundTransfers, campaign.id),
+    transfers: fundTransfers.filter((transfer) => transfer.sourceCampaignId === campaign.id || transfer.destinationCampaignId === campaign.id).map((transfer) => {
+      const incoming = transfer.destinationCampaignId === campaign.id;
+      const other = incoming ? transfer.sourceCampaign : transfer.destinationCampaign;
+      return { id: transfer.id, direction: incoming ? "IN" : "OUT", otherCode: other.code, otherName: other.name,
+        amount: decimalToNumber(transfer.amount), transferredAt: transfer.transferredAt.toISOString(), note: transfer.note };
+    }),
     transactionCount:
       transactionSums._count
       + allocatedTransactions.length
@@ -377,7 +386,7 @@ export function getCachedPublicCampaignData(code: string) {
   const normalizedCode = makeCampaignCode(code);
   return unstable_cache(
     () => getPublicCampaignData(normalizedCode),
-    ["public-campaign-data-v10", normalizedCode],
+    ["public-campaign-data-v11", normalizedCode],
     { revalidate: false, tags: [publicCampaignDataTag(normalizedCode)] },
   )();
 }

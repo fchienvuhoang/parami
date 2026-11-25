@@ -1,3 +1,4 @@
+import { getFundTransfers, fundTransferBalance } from "@/lib/fund-transfers";
 import { decimalToNumber } from "@/lib/money";
 import type { BankWorkspace } from "@prisma/client";
 import {
@@ -70,6 +71,7 @@ export type CampaignSummary = {
   expenses: number;
   balance: number;
   openingBalance: number;
+  internalTransferBalance: number;
   transactionCount: number;
   keywords: {
     id: string;
@@ -144,6 +146,7 @@ async function loadDashboardState(workspace: BankWorkspace): Promise<DashboardSt
       latestImport,
       openingBalance,
       transactionAllocations,
+      fundTransfers,
     ] = await Promise.all([
       prisma.campaign.findMany({
         where: { workspace },
@@ -281,6 +284,7 @@ async function loadDashboardState(workspace: BankWorkspace): Promise<DashboardSt
           transaction: { select: { creditAmount: true, debitAmount: true } },
         },
       }),
+      getFundTransfers(),
     ]);
 
     const txByCampaign = new Map(
@@ -326,7 +330,8 @@ async function loadDashboardState(workspace: BankWorkspace): Promise<DashboardSt
         debit,
         expenses: expensesAmount,
         openingBalance: initialAmount,
-        balance: initialAmount + income - expensesAmount,
+        internalTransferBalance: fundTransferBalance(fundTransfers, campaign.id),
+        balance: initialAmount + income - expensesAmount + fundTransferBalance(fundTransfers, campaign.id),
         transactionCount: campaign._count.transactions + (allocatedTransactionIdsByCampaign.get(campaign.id)?.size ?? 0),
         keywords: campaign.keywords.map((keyword) => ({
           id: keyword.id,

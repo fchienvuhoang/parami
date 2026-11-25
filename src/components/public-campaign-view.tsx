@@ -124,6 +124,29 @@ export function PublicCampaignView({ data }: { data: PublicCampaignData }) {
       </header>
 
       <main className="mx-auto max-w-5xl space-y-4 px-4 py-4 sm:px-6">
+        {data.transfers.length > 0 ? (
+          <section className="rounded-md border border-amber-200 bg-amber-50 p-3 shadow-sm sm:p-4">
+            <h2 className="text-base font-semibold text-amber-950">Điều chuyển nội bộ</h2>
+            <p className="mt-1 text-xs text-stone-600">Đã tính vào tịnh tài hiện còn; không tính thành khoản hùn phước mới hoặc chi phí thực tế.</p>
+            <div className="mt-3 space-y-3">
+              {data.transfers.map((transfer) => (
+                <div key={transfer.id} className="rounded-md border border-amber-200 bg-white p-3 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <a href={`/thien-phap/${transfer.otherCode}`} className="font-semibold text-amber-900 underline">
+                      {transfer.direction === "IN" ? "Chuyển vào từ" : "Chuyển đi sang"} {transfer.otherCode.toUpperCase()}
+                    </a>
+                    <span className={`font-semibold tabular-nums ${transfer.direction === "IN" ? "text-emerald-700" : "text-red-700"}`}>
+                      {transfer.direction === "IN" ? "+" : "−"}{money(transfer.amount)}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-stone-500">{new Date(transfer.transferredAt).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })} · {transfer.id}</p>
+                  <p className="mt-2 text-stone-700">{transfer.note}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         {showMonthlyExpenses ? (
           <section className="rounded-md border border-zinc-200 bg-white p-3 shadow-sm sm:p-4">
             <div>

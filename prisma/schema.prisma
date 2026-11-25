@@ -78,6 +78,8 @@ model Campaign {
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
   workspace                BankWorkspace             @default(VIB)
+  outgoingTransfers        CampaignFundTransfer[] @relation("TransferSource")
+  incomingTransfers        CampaignFundTransfer[] @relation("TransferDestination")
   keywords                 CampaignKeyword[]
   transactions             BankTransaction[]
   transactionAllocations   TransactionAllocation[]
@@ -209,4 +211,20 @@ model Expense {
 
   @@index([spentAt])
   @@index([campaignId, spentAt])
+}
+
+// One internal movement, shown as outgoing/incoming without creating bank activity.
+model CampaignFundTransfer {
+  id                    String   @id
+  sourceCampaignId      String
+  destinationCampaignId String
+  sourceCampaign        Campaign @relation("TransferSource", fields: [sourceCampaignId], references: [id], onDelete: Restrict)
+  destinationCampaign   Campaign @relation("TransferDestination", fields: [destinationCampaignId], references: [id], onDelete: Restrict)
+  amount                Decimal  @db.Decimal(18, 2)
+  transferredAt         DateTime
+  note                  String   @db.Text
+  createdAt             DateTime @default(now())
+
+  @@index([sourceCampaignId, transferredAt])
+  @@index([destinationCampaignId, transferredAt])
 }

@@ -1932,6 +1932,9 @@ function CampaignModal({
                   <MiniStat label="Chi" value={money(campaign.expenses)} />
                   <MiniStat label="GD" value={campaign.transactionCount.toLocaleString("vi-VN")} />
                 </div>
+                {campaign.internalTransferBalance !== 0 ? (
+                  <p className="mt-2 text-xs text-amber-800">Điều chuyển nội bộ (ròng): {money(campaign.internalTransferBalance)}. Đã tính vào số dư, không tính vào thu chi thực tế.</p>
+                ) : null}
                 <a
                   href={publicCampaignPath(campaign.code)}
                   target="_blank"

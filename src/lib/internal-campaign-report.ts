@@ -1,3 +1,4 @@
+import { getFundTransfers, fundTransferBalance } from "@/lib/fund-transfers";
 import { getPrisma, retryTransientDatabaseRead } from "@/lib/prisma";
 import { decimalToNumber } from "@/lib/money";
 
@@ -22,7 +23,7 @@ export async function getInternalCampaignReport(): Promise<InternalCampaignSumma
       select: { id: true, code: true, name: true, status: true, openingBalanceAllocation: { select: { amount: true } } },
     });
     const campaignIds = campaigns.map((campaign) => campaign.id);
-    const [direct, allocations] = await Promise.all([
+    const [direct, allocations, fundTransfers] = await Promise.all([
       prisma.bankTransaction.groupBy({
         by: ["campaignId"],
         where: { workspace: "VIB", campaignId: { in: campaignIds } },
@@ -32,6 +33,7 @@ export async function getInternalCampaignReport(): Promise<InternalCampaignSumma
         where: { campaignId: { in: campaignIds }, transaction: { workspace: "VIB" } },
         select: { campaignId: true, amount: true, transaction: { select: { creditAmount: true, debitAmount: true } } },
       }),
+      getFundTransfers(),
     ]);
     const directByCampaign = new Map(direct.map((item) => [item.campaignId, item._sum]));
     const allocated = new Map<string, { income: number; expenses: number }>();
@@ -46,7 +48,7 @@ export async function getInternalCampaignReport(): Promise<InternalCampaignSumma
       const income = decimalToNumber(sums?.creditAmount) + (allocated.get(campaign.id)?.income ?? 0);
       const expenses = decimalToNumber(sums?.debitAmount) + (allocated.get(campaign.id)?.expenses ?? 0);
       return { code: campaign.code, name: campaign.name, status: campaign.status, income, expenses,
-        balance: decimalToNumber(campaign.openingBalanceAllocation?.amount) + income - expenses };
+        balance: decimalToNumber(campaign.openingBalanceAllocation?.amount) + income - expenses + fundTransferBalance(fundTransfers, campaign.id) };
     });
   });
 }
