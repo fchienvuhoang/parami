@@ -2,7 +2,7 @@
 
 import { groupCampaigns } from "@/lib/campaign-groups";
 import { useState } from "react";
-import { ExternalLink, Search } from "lucide-react";
+import { Check, Copy, ExternalLink, Search } from "lucide-react";
 import type { InternalCampaignSummary } from "@/lib/internal-campaign-report";
 import { normalizeTransferText } from "@/lib/text";
 
@@ -72,12 +72,33 @@ export function InternalCampaignReport({ campaigns }: { campaigns: InternalCampa
 }
 
 function CampaignLink({ campaign }: { campaign: InternalCampaignSummary }) {
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
+  const path = `/thien-phap/${encodeURIComponent(campaign.code)}`;
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(new URL(path, window.location.origin).href);
+      setCopyState("copied");
+    } catch {
+      setCopyState("error");
+    }
+  }
+
   return (
     <div className="min-w-0">
       <a href={`/thien-phap/${encodeURIComponent(campaign.code)}`} target="_blank" rel="noreferrer" className="break-words font-medium leading-5 text-zinc-900 hover:text-emerald-700 hover:underline">
         {campaign.name} <ExternalLink aria-hidden="true" className="inline h-3 w-3" />
       </a>
-      <p className="mt-1 break-all font-mono text-xs text-stone-500">{campaign.code}{campaign.status === "PAUSED" ? " · Tạm dừng" : campaign.status === "COMPLETED" ? " · Hoàn tất" : ""}</p>
+      <div className="mt-1 flex items-center gap-2">
+        <p className="min-w-0 break-all font-mono text-xs text-stone-500">{campaign.code}{campaign.status === "PAUSED" ? " · Tạm dừng" : campaign.status === "COMPLETED" ? " · Hoàn tất" : ""}</p>
+        <button type="button" onClick={copyLink} aria-label={`Sao chép link thiện pháp ${campaign.code}`} title="Sao chép link"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-emerald-700 hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-emerald-700">
+          {copyState === "copied" ? <Check aria-hidden="true" className="h-4 w-4" /> : <Copy aria-hidden="true" className="h-4 w-4" />}
+        </button>
+      </div>
+      <p role="status" className={`text-xs ${copyState === "error" ? "text-red-700" : "text-emerald-700"}`}>
+        {copyState === "copied" ? "Đã sao chép link" : copyState === "error" ? "Không thể sao chép. Bạn có thể sao chép địa chỉ từ link thiện pháp ở trên." : ""}
+      </p>
     </div>
   );
 }
