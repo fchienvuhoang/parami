@@ -43,9 +43,9 @@ export function InternalCampaignReport({ campaigns }: { campaigns: InternalCampa
           <colgroup><col style={{ width: "45%" }} /><col style={{ width: "17%" }} /><col style={{ width: "17%" }} /><col style={{ width: "21%" }} /></colgroup>
           <thead className="bg-stone-100 text-xs text-stone-600"><tr><th scope="col" className="p-3">Thiện pháp</th><th scope="col" className="p-3 text-right">Tổng thu</th><th scope="col" className="p-3 text-right">Tổng chi</th><th scope="col" className="p-3 text-right">Còn lại</th></tr></thead>
           <tbody className="divide-y divide-stone-100">
-            {visible.map((campaign) => (
+            {visible.map((campaign, index) => (
               <tr key={campaign.code} className="hover:bg-emerald-50/40">
-                <td className="break-words p-3"><CampaignLink campaign={campaign} /></td>
+                <td className="break-words p-3"><CampaignLink campaign={campaign} index={index + 1} /></td>
                 <td className="break-words p-3 text-right tabular-nums text-emerald-700">{money(campaign.income)}</td>
                 <td className="break-words p-3 text-right tabular-nums text-amber-700">{money(campaign.expenses)}</td>
                 <td className="break-words p-3 text-right font-semibold tabular-nums">{money(campaign.balance)}</td>
@@ -55,9 +55,9 @@ export function InternalCampaignReport({ campaigns }: { campaigns: InternalCampa
         </table>
       </div>
       <div className="space-y-2 md:hidden">
-        {visible.map((campaign) => (
+        {visible.map((campaign, index) => (
           <article key={campaign.code} className="rounded-xl border border-stone-200 bg-white p-3">
-            <CampaignLink campaign={campaign} />
+            <CampaignLink campaign={campaign} index={index + 1} />
             <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-stone-100 pt-2 text-xs">
               {([ ["Thu", campaign.income], ["Chi", campaign.expenses], ["Còn lại", campaign.balance] ] as const).map(([label, amount]) => (
                 <div key={label} className="min-w-0"><dt className="text-stone-500">{label}</dt><dd className="mt-1 break-words font-semibold tabular-nums">{money(amount)}</dd></div>
@@ -71,7 +71,7 @@ export function InternalCampaignReport({ campaigns }: { campaigns: InternalCampa
   );
 }
 
-function CampaignLink({ campaign }: { campaign: InternalCampaignSummary }) {
+function CampaignLink({ campaign, index }: { campaign: InternalCampaignSummary; index: number }) {
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
   const path = `/thien-phap/${encodeURIComponent(campaign.code)}`;
 
@@ -87,7 +87,7 @@ function CampaignLink({ campaign }: { campaign: InternalCampaignSummary }) {
   return (
     <div className="min-w-0">
       <a href={`/thien-phap/${encodeURIComponent(campaign.code)}`} target="_blank" rel="noreferrer" className="break-words font-medium leading-5 text-zinc-900 hover:text-emerald-700 hover:underline">
-        {campaign.name} <ExternalLink aria-hidden="true" className="inline h-3 w-3" />
+        <span className="mr-1 font-semibold text-stone-500">{index}.</span> {campaign.name} <ExternalLink aria-hidden="true" className="inline h-3 w-3" />
       </a>
       <div className="mt-1 flex items-center gap-2">
         <p className="min-w-0 break-all font-mono text-xs text-stone-500">{campaign.code}{campaign.status === "PAUSED" ? " · Tạm dừng" : campaign.status === "COMPLETED" ? " · Hoàn tất" : ""}</p>
