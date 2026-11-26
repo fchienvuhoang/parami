@@ -1,5 +1,7 @@
 "use client";
 
+import { groupCampaigns } from "@/lib/campaign-groups";
+
 import {
   AlertCircle,
   ArrowUpFromLine,
@@ -104,8 +106,11 @@ function Dashboard({ data }: { data: DashboardData }) {
   const [activeTab, setActiveTab] = useState("all");
   const [query, setQuery] = useState("");
   const [campaignQuery, setCampaignQuery] = useState("");
+  const [campaignGroup, setCampaignGroup] = useState<"current" | "settled">("current");
+  const campaignGroups = groupCampaigns(data.campaigns);
+  const selectedCampaigns = campaignGroups[campaignGroup];
   const normalizedCampaignQuery = normalizeTransferText(campaignQuery);
-  const filteredCampaigns = data.campaigns.filter((campaign) =>
+  const filteredCampaigns = selectedCampaigns.filter((campaign) =>
     normalizeTransferText(campaign.name).includes(normalizedCampaignQuery),
   );
   const [message, setMessage] = useState<string | null>(null);
@@ -668,9 +673,20 @@ function Dashboard({ data }: { data: DashboardData }) {
                     />
                   </div>
                 </div>
+                <div aria-label="Nhóm thiện pháp" className="mt-3 grid grid-cols-2 gap-2">
+                  {([
+                    ["current", "Đang hoạt động / còn số dư"],
+                    ["settled", "Hoàn tất · hết số dư"],
+                  ] as const).map(([value, label]) => (
+                    <button key={value} type="button" aria-pressed={campaignGroup === value} onClick={() => setCampaignGroup(value)}
+                      className={`rounded-md border px-3 py-2 text-sm font-medium ${campaignGroup === value ? "border-indigo-600 bg-indigo-600 text-white" : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"}`}>
+                      {label} ({campaignGroups[value].length})
+                    </button>
+                  ))}
+                </div>
                 {campaignQuery.trim() && (
                   <p role="status" className="mt-2 text-sm text-zinc-500">
-                    Tìm thấy {filteredCampaigns.length}/{data.campaigns.length} thiện pháp.
+                    Tìm thấy {filteredCampaigns.length}/{selectedCampaigns.length} thiện pháp trong tab này.
                   </p>
                 )}
                 <CampaignTable

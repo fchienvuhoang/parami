@@ -1,5 +1,6 @@
 "use client";
 
+import { groupCampaigns } from "@/lib/campaign-groups";
 import { useState } from "react";
 import { ExternalLink, Search } from "lucide-react";
 import type { InternalCampaignSummary } from "@/lib/internal-campaign-report";
@@ -10,8 +11,7 @@ const money = (amount: number) => `${amount.toLocaleString("vi-VN")}đ`;
 export function InternalCampaignReport({ campaigns }: { campaigns: InternalCampaignSummary[] }) {
   const [tab, setTab] = useState<"active" | "completed">("active");
   const [query, setQuery] = useState("");
-  const active = campaigns.filter((campaign) => campaign.status !== "COMPLETED");
-  const completed = campaigns.filter((campaign) => campaign.status === "COMPLETED");
+  const { current: active, settled: completed } = groupCampaigns(campaigns);
   const selected = tab === "active" ? active : completed;
   const normalized = normalizeTransferText(query);
   const visible = selected.filter((campaign) => normalizeTransferText(`${campaign.code} ${campaign.name}`).includes(normalized));
@@ -21,8 +21,8 @@ export function InternalCampaignReport({ campaigns }: { campaigns: InternalCampa
     <section className="space-y-4">
       <div aria-label="Trạng thái thiện pháp" className="grid grid-cols-2 gap-2">
         {([
-          ["active", "Đang hoạt động", active.length],
-          ["completed", "Đã kết thúc", completed.length],
+          ["active", "Đang hoạt động / còn số dư", active.length],
+          ["completed", "Hoàn tất · hết số dư", completed.length],
         ] as const).map(([value, label, count]) => (
           <button key={value} type="button" aria-pressed={tab === value} onClick={() => setTab(value)}
             className={`rounded-xl border px-3 py-3 text-sm font-semibold ${tab === value ? "border-emerald-700 bg-emerald-700 text-white" : "border-stone-200 bg-white text-stone-600 hover:bg-stone-50"}`}>
@@ -39,7 +39,7 @@ export function InternalCampaignReport({ campaigns }: { campaigns: InternalCampa
       <p role="status" className="text-xs text-stone-500">Hiển thị {visible.length}/{selected.length} thiện pháp</p>
       <div className="hidden overflow-hidden rounded-xl border border-stone-200 bg-white md:block">
         <table className="w-full table-fixed text-left text-sm">
-          <caption className="sr-only">{tab === "active" ? "Thiện pháp đang hoạt động" : "Thiện pháp đã kết thúc"}</caption>
+          <caption className="sr-only">{tab === "active" ? "Thiện pháp đang hoạt động hoặc còn số dư" : "Thiện pháp hoàn tất và hết số dư"}</caption>
           <colgroup><col style={{ width: "45%" }} /><col style={{ width: "17%" }} /><col style={{ width: "17%" }} /><col style={{ width: "21%" }} /></colgroup>
           <thead className="bg-stone-100 text-xs text-stone-600"><tr><th scope="col" className="p-3">Thiện pháp</th><th scope="col" className="p-3 text-right">Tổng thu</th><th scope="col" className="p-3 text-right">Tổng chi</th><th scope="col" className="p-3 text-right">Còn lại</th></tr></thead>
           <tbody className="divide-y divide-stone-100">
@@ -77,7 +77,7 @@ function CampaignLink({ campaign }: { campaign: InternalCampaignSummary }) {
       <a href={`/thien-phap/${encodeURIComponent(campaign.code)}`} target="_blank" rel="noreferrer" className="break-words font-medium leading-5 text-zinc-900 hover:text-emerald-700 hover:underline">
         {campaign.name} <ExternalLink aria-hidden="true" className="inline h-3 w-3" />
       </a>
-      <p className="mt-1 break-all font-mono text-xs text-stone-500">{campaign.code}{campaign.status === "PAUSED" ? " · Tạm dừng" : ""}</p>
+      <p className="mt-1 break-all font-mono text-xs text-stone-500">{campaign.code}{campaign.status === "PAUSED" ? " · Tạm dừng" : campaign.status === "COMPLETED" ? " · Hoàn tất" : ""}</p>
     </div>
   );
 }
